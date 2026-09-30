@@ -15,7 +15,8 @@ import { wrapWords } from '../ui/wrap.ts';
 
 const WALK_W = 1280;
 const ARENA_X = WALK_W; // 배급 구역은 걷기 구역 오른쪽에 붙인다
-const BASE_SPEED = 72;
+/** 초당 60칸 = 60Hz 화면에서 프레임마다 정확히 1칸. 1칸·2칸이 섞이면 도트가 떨려 보인다. */
+const BASE_SPEED = 60;
 const DELIVERY_GOAL = 30;
 const CARRY = 3;
 const CRUMBS_PER_BASKET = 5;
@@ -133,7 +134,8 @@ export class Ch6FeedingScene extends Phaser.Scene {
     this.player = this.add.sprite(40, this.yAt(0.55), 'player', 0);
     this.lastX = this.player.x;
     this.carryIcon = this.add.container(0, 0).setDepth(900).setVisible(false);
-    this.cameras.main.setBounds(0, 0, WALK_W, this.H).startFollow(this.player, true, 0.15, 0.15);
+    // 카메라는 주인공에 딱 붙여 따라간다. 늦게 따라가면 칸 단위 반올림과 겹쳐 떨려 보인다.
+    this.cameras.main.setBounds(0, 0, WALK_W, this.H).startFollow(this.player, true, 1, 1);
     this.buildHud();
 
     if (data?.checkpoint) {
@@ -190,7 +192,11 @@ export class Ch6FeedingScene extends Phaser.Scene {
       hill.fillStyle(PAL.aqua).fillRect(x, groundTop - h, 2, 1);
     }
     hill.fillStyle(PAL.pine).fillRect(0, groundTop - 2, totalW, 2);
-    for (let y = groundTop; y < H; y += 16) for (let x = 0; x < totalW; x += 16) this.add.image(x, y, grassTile(x, y)).setOrigin(0);
+    // 바닥은 타일 수천 장 대신 한 장의 텍스처로 미리 그려 둔다(폰에서 가볍게).
+    const ground = this.add.renderTexture(0, groundTop, totalW, H - groundTop).setOrigin(0);
+    ground.beginDraw();
+    for (let y = groundTop; y < H; y += 16) for (let x = 0; x < totalW; x += 16) ground.batchDraw(grassTile(x, y), x, y - groundTop);
+    ground.endDraw();
     for (const [x, f] of [
       [210, 0.2],
       [520, 0.9],
@@ -616,7 +622,8 @@ export class Ch6FeedingScene extends Phaser.Scene {
   update(_t: number, delta: number) {
     if (!this.player) return;
     const p = this.player;
-    const hungerFactor = this.phase === 'walk' ? 0.45 + (0.55 * this.hunger) / 100 : 1;
+    // 배고프면 느려지되, 프레임마다 움직이는 칸이 규칙적이도록 1 → 2/3 → 1/2 단계로만 바꾼다.
+    const hungerFactor = this.phase !== 'walk' || this.hunger >= 60 ? 1 : this.hunger >= 30 ? 2 / 3 : 1 / 2;
     const v = this.controls.move(p);
     const speed = BASE_SPEED * hungerFactor * (delta / 1000);
     if (v.lengthSq() > 0 && this.phase !== 'done') {
