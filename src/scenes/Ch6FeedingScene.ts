@@ -11,6 +11,7 @@ import { Controls } from '../ui/Controls.ts';
 import { choose, say, titleCard } from '../ui/Dialog.ts';
 import { menuButtonInset } from '../ui/layout.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
+import { announceNewSigns } from '../ui/SignsMenu.ts';
 import { drawPanel } from '../ui/panel.ts';
 import { bt, DEPTH_UI, measurer, Tag } from '../ui/text.ts';
 import { wrapWords } from '../ui/wrap.ts';
@@ -606,10 +607,13 @@ export class Ch6FeedingScene extends Phaser.Scene {
     this.hint.setAlpha(0);
     await this.controls.modal(() => openScroll(this, [REF.end]));
     Save.addVerses([REF.end]);
+    const shown = announceNewSigns(this);
     Save.setFlag('sharedFigs', this.sharedFigs);
     Save.setFlag('keptFigs', !this.sharedFigs);
-    this.cameras.main.fadeOut(900, ...rgb(PAL.ink));
-    this.cameras.main.once('camerafadeoutcomplete', () => goNext(this));
+    this.time.delayedCall(shown ? shown * 2600 : 300, () => {
+      this.cameras.main.fadeOut(900, ...rgb(PAL.ink));
+      this.cameras.main.once('camerafadeoutcomplete', () => goNext(this));
+    });
   }
 
   // ───────── 매 프레임 ─────────
