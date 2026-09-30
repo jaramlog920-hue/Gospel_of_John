@@ -2,6 +2,8 @@
 // 캔버스로 TTF를 그리면 브라우저(특히 iOS)마다 가장자리를 부드럽게 다듬어 흐릿해진다.
 // 도트를 그대로 찍어 둔 비트맵 폰트는 어느 기기에서나 또렷하다.
 // 본문·게임 텍스트에 쓰인 글자만 모아 담는다. `npm run dev`/`build` 전에 자동으로 실행된다.
+// 결과는 src/fonts-gen/에 두고 코드에서 불러온다. 그러면 Vite가 파일 이름에 해시를 붙여서,
+// 글자가 바뀌면 이름도 바뀌므로 폰에 남은 예전 폰트가 쓰이지 않는다.
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { deflateSync } from 'node:zlib';
@@ -160,7 +162,7 @@ if (process.argv[1]?.endsWith('build-fonts.ts')) {
     ['node_modules/galmuri/dist/Galmuri11.bdf', 'galmuri11'],
     ['node_modules/galmuri/dist/Galmuri9.bdf', 'galmuri9'],
   ]) {
-    const r = buildFont(bdf, name, 'public/assets/fonts/gen', charset);
+    const r = buildFont(bdf, name, 'src/fonts-gen', charset);
     // 주석에만 쓰는 기호처럼 폰트에 없는 글자는 화면에 나오지 않으므로 알려만 준다.
     const shown = r.missing.filter((c) => c > 0x7f).map((c) => String.fromCodePoint(c));
     console.log(`✓ ${name}: ${r.count}자, ${r.size}${shown.length ? ` (폰트에 없는 글자 ${shown.length}개: ${shown.join('')})` : ''}`);

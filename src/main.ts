@@ -62,3 +62,6 @@ window.matchMedia('(orientation: portrait)').addEventListener('change', refit);
 // 메뉴: Esc 키, 세로 패드의 메뉴 버튼, 가로 화면 모서리의 메뉴 버튼
 window.addEventListener('keydown', (e) => e.code === 'Escape' && openPauseMenu(game));
 document.getElementById('menu-btn')?.addEventListener('click', () => openPauseMenu(game));
+
+// 확인용: ?debug 주소에서만 콘솔에서 게임 객체를 볼 수 있게 한다.
+if (new URLSearchParams(location.search).has('debug')) (window as unknown as { game: Phaser.Game }).game = game;
