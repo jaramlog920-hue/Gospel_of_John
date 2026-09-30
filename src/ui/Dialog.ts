@@ -29,7 +29,7 @@ export function say(scene: Phaser.Scene, speaker: string | null, ...messages: st
   if (speaker) {
     const nw = measure(speaker) + 12;
     root.add(drawPanel(scene.add.graphics(), r.x + 6, r.y - 9, nw, 14, 'accent'));
-    root.add(bt(scene, r.x + 12, r.y - 8, speaker, PAL.white));
+    root.add(bt(scene, r.x + 12, r.y - 9, speaker, PAL.white));
   }
   const body = bt(scene, r.x + PAD, r.y + PAD - 2, '', PAL.white).setLineSpacing(LINE - 12);
   const arrow = nextArrow(scene, r.x + r.w - 14, r.y + r.h - 9).setVisible(false);
@@ -108,7 +108,7 @@ export function choose(scene: Phaser.Scene, prompt: string | null, options: stri
   root.add([bar, cursor]);
   const rows = options.map((o, i) => {
     const ry = y + top + i * rowH;
-    const label = bt(scene, x + 20, ry + 4, o, PAL.mist);
+    const label = bt(scene, x + 20, ry + 3, o, PAL.mist);
     const hit = scene.add.zone(x, ry, w, rowH).setOrigin(0).setInteractive({ useHandCursor: true });
     root.add([label, hit]);
     return { label, hit, ry };
@@ -117,7 +117,7 @@ export function choose(scene: Phaser.Scene, prompt: string | null, options: stri
   const place = () => {
     const r = rows[sel];
     bar.setY(r.ry + 2);
-    cursor.setPosition(x + 10, r.ry + 7);
+    cursor.setPosition(x + 10, r.ry + 6);
     rows.forEach((row, i) => row.label.setTint(i === sel ? PAL.white : PAL.steel));
   };
   place();
