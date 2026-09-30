@@ -17,15 +17,15 @@ export function mountVirtualPad(container: HTMLElement) {
   container.innerHTML = `
     <div class="pad-dpad" aria-label="방향 패드">
       <svg viewBox="0 0 100 100" aria-hidden="true">
-        <path d="M36 4h28a4 4 0 0 1 4 4v24h24a4 4 0 0 1 4 4v28a4 4 0 0 1-4 4H68v24a4 4 0 0 1-4 4H36a4 4 0 0 1-4-4V68H8a4 4 0 0 1-4-4V36a4 4 0 0 1 4-4h24V8a4 4 0 0 1 4-4z"
-          fill="#c3a3d0" transform="translate(0 4)" />
-        <path d="M36 4h28a4 4 0 0 1 4 4v24h24a4 4 0 0 1 4 4v28a4 4 0 0 1-4 4H68v24a4 4 0 0 1-4 4H36a4 4 0 0 1-4-4V68H8a4 4 0 0 1-4-4V36a4 4 0 0 1 4-4h24V8a4 4 0 0 1 4-4z"
-          fill="#9f97bf" />
-        <circle cx="50" cy="50" r="8" fill="#8583b8" />
-        <path class="arrow up" d="M50 12l9 11H41z" />
-        <path class="arrow down" d="M50 88l-9-11h18z" />
-        <path class="arrow left" d="M12 50l11-9v18z" />
-        <path class="arrow right" d="M88 50l-11 9V41z" />
+        <path d="M34 2h32v32h32v32H66v32H34V66H2V34h32z" fill="#2e222f" transform="translate(0 5)" />
+        <path d="M34 2h32v32h32v32H66v32H34V66H2V34h32z" fill="#2e222f" />
+        <path d="M37 5h26v32h32v26H63v32H37V63H5V37h32z" fill="#625565" />
+        <path d="M37 5h26v3H37zM5 37h32v3H5zM63 37h32v3H63z" fill="#7f708a" />
+        <rect x="44" y="44" width="12" height="12" fill="#3e3546" />
+        <path class="arrow up" d="M50 12l8 10H42z" />
+        <path class="arrow down" d="M50 88l-8-10h16z" />
+        <path class="arrow left" d="M12 50l10-8v16z" />
+        <path class="arrow right" d="M88 50l-10 8V42z" />
       </svg>
     </div>
     <button class="pad-a" aria-label="확인">확인</button>

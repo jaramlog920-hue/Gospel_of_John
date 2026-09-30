@@ -25,12 +25,13 @@ export class CampfireScene extends Phaser.Scene {
     const fireY = Math.floor(H * 0.7);
     this.cameras.main.setBackgroundColor(PAL.night).fadeIn(700);
     for (let i = 0; i < 30; i++) this.add.rectangle((i * 97) % W, (i * 41) % (shore - 16), 1, 1, PAL.white, 0.8);
-    for (let x = 0; x < W; x += 16) this.add.image(x, shore - 16, 'water').setOrigin(0).setAlpha(0.7);
-    for (let y = shore; y < H; y += 16) for (let x = 0; x < W; x += 16) this.add.image(x, y, 'sand').setOrigin(0).setTint(PAL.stone);
-    const glow = this.add.image(W / 2, fireY - 4, 'halo').setScale(2.4).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.55).setTint(PAL.amber);
+    const sea = this.add.tileSprite(0, shore - 16, W, 16, 'water').setOrigin(0).setTint(PAL.navy);
+    this.tweens.add({ targets: sea, tilePositionX: 32, duration: 5000, repeat: -1 });
+    for (let y = shore; y < H; y += 16) for (let x = 0; x < W; x += 16) this.add.image(x, y, 'sand').setOrigin(0).setTint(PAL.lilac);
+    const glow = this.add.image(W / 2, fireY - 4, 'halo').setScale(2.4).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.55).setTint(PAL.orange);
     this.tweens.add({ targets: glow, alpha: 0.4, scale: 2.3, duration: 600, yoyo: true, repeat: -1 });
     this.add.sprite(W / 2, fireY, 'campfire').play('campfire-burn');
-    this.add.sprite(W / 2 - 24, fireY - 4, 'player', 0);
+    this.add.sprite(W / 2 - 24, fireY - 4, 'player', 8); // 옆모습으로 불을 바라본다
 
     await say(this, '나', '모닥불 앞에 앉았다. 오늘 본 것들이 자꾸 떠오른다.');
     const pick = await choose(

@@ -2,13 +2,13 @@
 // 화면은 흑백으로 시작해서 단계를 풀 때마다 색이 돌아오고, 마지막에 온 색이 한 번에 펼쳐진다.
 // 본문은 1:1–18(서문)을 끊지 않고 단계마다 이어서 보여준다.
 import Phaser from 'phaser';
-import { css, PAL, rgb } from '../art/palette.ts';
+import { PAL, rgb } from '../art/palette.ts';
 import { LEVELS, parseLevel, toggleMirror, traceBeam, type Cell } from '../minigames/lightBeam.ts';
 import { Save } from '../state/save.ts';
 import { Controls } from '../ui/Controls.ts';
 import { say, titleCard } from '../ui/Dialog.ts';
-import { FONT_UI } from '../ui/layout.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
+import { Tag } from '../ui/text.ts';
 
 const TILE = 16;
 const INTRO_REF = 'john:1:1-3';
@@ -28,7 +28,7 @@ export class Ch1LightScene extends Phaser.Scene {
   private tiles: Phaser.GameObjects.Image[] = [];
   private beam!: Phaser.GameObjects.Graphics;
   private halos: Phaser.GameObjects.Image[] = [];
-  private status!: Phaser.GameObjects.Text;
+  private status!: Tag;
   private gray = { amount: 1 };
   private colorMatrix?: Phaser.FX.ColorMatrix;
   /** 흑백 효과는 퍼즐 판에만 준다. 두루마리와 대화 상자는 제 색을 유지한다. */
@@ -62,10 +62,12 @@ export class Ch1LightScene extends Phaser.Scene {
     const rows = LEVELS[0].length;
     this.ox = Math.floor((W - cols * TILE) / 2);
     this.oy = Math.floor((H - rows * TILE) / 2);
-    for (let x = 0; x < W; x += 16) this.world.add(this.add.image(x, H - 16, 'water').setOrigin(0).setAlpha(0.8));
+    const sea = this.add.tileSprite(0, H - 16, W, 16, 'water').setOrigin(0);
+    this.tweens.add({ targets: sea, tilePositionX: 32, duration: 4000, repeat: -1 });
+    this.world.add(sea);
     this.beam = this.add.graphics().setDepth(5);
     this.world.add(this.beam);
-    this.status = this.add.text(W / 2, this.oy - 12, '', { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.mist) }).setOrigin(0.5);
+    this.status = new Tag(this, W / 2, this.oy - 22, ' ', { fg: PAL.mist, bg: PAL.night, border: PAL.indigo, originX: 0.5 });
 
     if (!resumed) {
       await titleCard(this, '1장 · 태초에 말씀이', '갈릴리 바닷가, 캄캄한 밤');
@@ -115,7 +117,7 @@ export class Ch1LightScene extends Phaser.Scene {
     );
     this.world.add(this.tiles);
     this.world.sort('depth');
-    this.status.setText(`빛 퍼즐 ${this.level + 1}/${LEVELS.length} · 거울을 눌러 돌리기`);
+    this.status.setLabel(`빛 퍼즐 ${this.level + 1}/${LEVELS.length} · 거울을 눌러 돌리기`);
     this.redraw();
   }
 
@@ -132,7 +134,7 @@ export class Ch1LightScene extends Phaser.Scene {
     this.beam.clear();
     const pts = result.path.map((p) => ({ x: this.ox + p.x * TILE + 8, y: this.oy + p.y * TILE + 8 }));
     for (const [w, color, alpha] of [
-      [5, PAL.amber, 0.35],
+      [5, PAL.orange, 0.35],
       [2, PAL.gold, 1],
       [1, PAL.white, 1],
     ] as const) {
@@ -179,7 +181,7 @@ export class Ch1LightScene extends Phaser.Scene {
         onComplete: () => resolve(),
       }),
     );
-    if (last) this.cameras.main.flash(500, ...rgb(PAL.parchment));
+    if (last) this.cameras.main.flash(500, ...rgb(PAL.cream));
 
     const ref = LEVEL_REFS[this.level];
     await this.controls.modal(async () => {

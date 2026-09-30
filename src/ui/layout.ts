@@ -2,15 +2,11 @@
 // 폰의 실제 화소 기준으로 정수배로만 키워서 도트와 글자가 고르게 보이게 한다.
 // Phaser 없이도 불러올 수 있게 따로 둔다(테스트에서 사용).
 
-export const FONT_SCRIPTURE = 'Galmuri11';
-export const FONT_UI = 'Galmuri9';
-export const SIZE_SCRIPTURE = 12;
-export const SIZE_UI = 10;
 
 /** 가로 화면에서 보장하는 최소 논리 해상도 */
 export const LANDSCAPE_MIN = { w: 320, h: 180 } as const;
 /** 세로 화면(게임이 화면 위쪽 2/3를 차지)에서 보장하는 최소 논리 해상도 */
-export const PORTRAIT_MIN = { w: 216, h: 280 } as const;
+export const PORTRAIT_MIN = { w: 192, h: 250 } as const;
 
 export interface View {
   w: number;

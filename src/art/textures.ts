@@ -1,362 +1,511 @@
-// 도트 스프라이트를 코드로 그려 텍스처로 등록한다(초기 로딩 0바이트).
+// 도트 그림을 코드로 그려 텍스처로 등록한다(이미지 파일 0바이트).
+// 그림체: Resurrect 64 팔레트, 1px 외곽선, 두세 단계 명암. 캐릭터는 앞·뒤·옆 걷기 모습이 있다.
 import Phaser from 'phaser';
 import { PAL, css } from './palette.ts';
 
-type Ctx = CanvasRenderingContext2D;
+// ───────── 픽셀 버퍼 ─────────
 
-function px(ctx: Ctx, color: number, x: number, y: number, w = 1, h = 1) {
-  ctx.fillStyle = css(color);
-  ctx.fillRect(x, y, w, h);
+class Pix {
+  readonly data: Int32Array;
+  constructor(
+    readonly w: number,
+    readonly h: number,
+  ) {
+    this.data = new Int32Array(w * h).fill(-1);
+  }
+  set(x: number, y: number, c: number) {
+    if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.data[y * this.w + x] = c;
+  }
+  get(x: number, y: number) {
+    return x >= 0 && y >= 0 && x < this.w && y < this.h ? this.data[y * this.w + x] : -1;
+  }
+  rect(x: number, y: number, w: number, h: number, c: number) {
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.set(x + i, y + j, c);
+  }
+  /** 문자 지도. '.'은 건너뛴다. */
+  map(ox: number, oy: number, rows: string[], colors: Record<string, number>) {
+    rows.forEach((row, y) => [...row].forEach((ch, x) => ch !== '.' && colors[ch] !== undefined && this.set(ox + x, oy + y, colors[ch])));
+  }
+  /** 비어 있는 칸 가운데 그림과 맞닿은 곳에 외곽선을 두른다. */
+  outline(color: number = PAL.ink) {
+    const copy = this.data.slice();
+    const at = (x: number, y: number) => (x >= 0 && y >= 0 && x < this.w && y < this.h ? copy[y * this.w + x] : -1);
+    for (let y = 0; y < this.h; y++)
+      for (let x = 0; x < this.w; x++)
+        if (at(x, y) === -1 && (at(x - 1, y) >= 0 || at(x + 1, y) >= 0 || at(x, y - 1) >= 0 || at(x, y + 1) >= 0)) this.set(x, y, color);
+    return this;
+  }
+  draw(ctx: CanvasRenderingContext2D, ox = 0, oy = 0) {
+    for (let y = 0; y < this.h; y++)
+      for (let x = 0; x < this.w; x++) {
+        const c = this.data[y * this.w + x];
+        if (c < 0) continue;
+        ctx.fillStyle = css(c);
+        ctx.fillRect(ox + x, oy + y, 1, 1);
+      }
+  }
 }
 
-/** 문자 지도로 그리는 작은 그림. '.'은 투명. */
-function drawMap(ctx: Ctx, ox: number, oy: number, map: string[], colors: Record<string, number>) {
-  map.forEach((row, y) => [...row].forEach((ch, x) => ch !== '.' && px(ctx, colors[ch], ox + x, oy + y)));
-}
-
-function canvasTexture(scene: Phaser.Scene, key: string, w: number, h: number, draw: (ctx: Ctx) => void) {
+function canvasTexture(scene: Phaser.Scene, key: string, w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void) {
   const tex = scene.textures.createCanvas(key, w, h)!;
   draw(tex.getContext());
   tex.refresh();
   return tex;
 }
 
-export interface PersonStyle {
-  robe: number;
-  sash: number;
-  hair: number;
-  skin?: number;
-  headcloth?: number;
-  kid?: boolean;
-  glow?: boolean;
+function pixTexture(scene: Phaser.Scene, key: string, p: Pix) {
+  return canvasTexture(scene, key, p.w, p.h, (ctx) => p.draw(ctx));
 }
 
-/** 16×24 사람, 걷기 4프레임(0 서기, 1 왼발, 2 서기, 3 오른발) */
-function drawPerson(ctx: Ctx, ox: number, frame: number, s: PersonStyle) {
-  const skin = s.skin ?? PAL.skin;
-  const top = s.kid ? 5 : 1;
-  const bob = frame === 1 || frame === 3 ? 1 : 0;
-  const y0 = top + bob;
-  // 머리
-  px(ctx, skin, ox + 5, y0 + 2, 6, 6);
-  if (s.headcloth !== undefined) {
-    px(ctx, s.headcloth, ox + 4, y0, 8, 3);
-    px(ctx, s.headcloth, ox + 4, y0 + 3, 1, 6);
-    px(ctx, s.headcloth, ox + 11, y0 + 3, 1, 6);
+/** 지도 한 장을 외곽선과 함께 텍스처로 */
+function mapTexture(scene: Phaser.Scene, key: string, rows: string[], colors: Record<string, number>, outline = true) {
+  const p = new Pix(rows[0].length + 2, rows.length + 2);
+  p.map(1, 1, rows, colors);
+  if (outline) p.outline();
+  return pixTexture(scene, key, p);
+}
+
+// ───────── 사람 ─────────
+
+export interface PersonStyle {
+  robe: number;
+  robeShade: number;
+  sash: number;
+  hair: number;
+  hairShade?: number;
+  skin?: number;
+  skinShade?: number;
+  headcloth?: number;
+  headclothShade?: number;
+  kid?: boolean;
+}
+
+export type Facing = 'down' | 'up' | 'side';
+const FACINGS: Facing[] = ['down', 'up', 'side'];
+const FRAME_W = 16;
+const FRAME_H = 24;
+
+/** 16×24 한 프레임. frame 0·2 서기, 1·3 걷기. side는 오른쪽을 본다. */
+function drawPerson(p: Pix, ox: number, dir: Facing, frame: number, s: PersonStyle) {
+  const skin = s.skin ?? PAL.cream;
+  const skinShade = s.skinShade ?? PAL.peach;
+  const hair = s.hair;
+  const hairShade = s.hairShade ?? PAL.ink;
+  const step = frame === 1 || frame === 3;
+  const t = (s.kid ? 4 : 1) + (step ? 1 : 0); // 머리 위쪽. 걸을 때 한 칸 내려앉는다.
+  const b0 = t + 9; // 몸통 시작
+  const feet = 21;
+  const set = (x: number, y: number, c: number) => p.set(ox + x, y, c);
+  const rect = (x: number, y: number, w: number, h: number, c: number) => p.rect(ox + x, y, w, h, c);
+  const cloth = s.headcloth;
+  const clothShade = s.headclothShade ?? s.robeShade;
+
+  if (dir === 'side') {
+    // 머리(오른쪽을 봄)
+    rect(6, t + 1, 5, 1, hair);
+    rect(5, t + 2, 7, 2, hair);
+    rect(8, t + 4, 4, 4, skin);
+    rect(5, t + 4, 3, 4, hair);
+    rect(7, t + 8, 4, 1, skin);
+    set(12, t + 6, skin); // 코
+    rect(10, t + 5, 1, 2, PAL.ink); // 눈
+    set(9, t + 7, PAL.salmon);
+    set(8, t + 7, skinShade);
+    rect(5, t + 4, 1, 3, hairShade);
+    if (cloth !== undefined) {
+      rect(5, t, 7, 3, cloth);
+      rect(4, t + 3, 4, 6, cloth);
+      rect(4, t + 3, 1, 6, clothShade);
+      rect(5, t + 2, 7, 1, s.sash);
+    }
+    // 몸통
+    for (let y = b0; y < feet; y++) {
+      const wide = y >= b0 + 5;
+      rect(wide ? 5 : 6, y, wide ? 7 : 5, 1, s.robe);
+      set(wide ? 5 : 6, y, s.robeShade);
+    }
+    rect(6, b0 + 4, 5, 1, s.sash);
+    // 앞팔: 걸을 때 앞뒤로 흔든다.
+    const hand = frame === 1 ? 10 : frame === 3 ? 7 : 9;
+    rect(8, b0 + 1, 2, 3, s.robeShade);
+    set(hand, b0 + 4, s.robeShade);
+    set(hand, b0 + 5, skin);
+    // 발
+    if (frame === 1) {
+      rect(10, feet, 2, 1, PAL.mud);
+      rect(5, feet, 2, 1, PAL.mud);
+    } else if (frame === 3) {
+      rect(9, feet, 2, 1, PAL.mud);
+      rect(6, feet, 2, 1, PAL.mud);
+    } else rect(7, feet, 3, 1, PAL.mud);
+    return;
+  }
+
+  // 머리(앞·뒤)
+  rect(5, t + 1, 6, 1, hair);
+  rect(4, t + 2, 8, 2, hair);
+  if (dir === 'down') {
+    rect(5, t + 3, 6, 1, hair);
+    rect(5, t + 4, 6, 4, skin);
+    rect(6, t + 8, 4, 1, skin);
+    rect(4, t + 4, 1, 3, hair);
+    rect(11, t + 4, 1, 3, hair);
+    rect(10, t + 4, 1, 4, skinShade);
+    rect(6, t + 5, 1, 2, PAL.ink);
+    rect(9, t + 5, 1, 2, PAL.ink);
+    set(5, t + 7, PAL.salmon);
+    set(10, t + 7, PAL.salmon);
+    set(6, t + 2, PAL.white); // 머리 윤기
   } else {
-    px(ctx, s.hair, ox + 5, y0 + 1, 6, 2);
-    px(ctx, s.hair, ox + 4, y0 + 2, 1, 3);
-    px(ctx, s.hair, ox + 11, y0 + 2, 1, 3);
+    rect(4, t + 3, 8, 5, hair);
+    rect(5, t + 8, 6, 1, hair);
+    rect(10, t + 2, 2, 6, hairShade);
+    set(8, t + 8, skin);
   }
-  px(ctx, PAL.ink, ox + 6, y0 + 5);
-  px(ctx, PAL.ink, ox + 9, y0 + 5);
-  // 몸통(겉옷)
-  const bodyTop = y0 + 8;
-  const bodyBottom = 21;
-  for (let y = bodyTop; y < bodyBottom; y++) {
-    const widen = y > bodyTop + 6 ? 1 : 0;
-    px(ctx, s.robe, ox + 4 - widen, y, 8 + widen * 2, 1);
+  if (cloth !== undefined) {
+    rect(4, t, 8, 3, cloth);
+    rect(3, t + 3, 2, 6, cloth);
+    rect(11, t + 3, 2, 6, clothShade);
+    rect(4, t + 2, 8, 1, s.sash);
+    if (dir === 'up') rect(4, t + 3, 8, 6, cloth), rect(9, t + 3, 3, 6, clothShade);
   }
-  px(ctx, s.sash, ox + 4, bodyTop + 4, 8, 1);
+  // 몸통
+  for (let y = b0; y < feet; y++) {
+    const wide = y >= b0 + 5;
+    rect(wide ? 4 : 5, y, wide ? 8 : 6, 1, s.robe);
+    rect(wide ? 10 : 9, y, 2, 1, s.robeShade);
+  }
+  rect(5, b0 + 4, 6, 1, s.sash);
+  if (dir === 'down') rect(7, b0, 2, 1, skinShade); // 목
   // 팔
   const swing = frame === 1 ? -1 : frame === 3 ? 1 : 0;
-  px(ctx, s.robe, ox + 3, bodyTop + 1 + swing, 1, 4);
-  px(ctx, s.robe, ox + 12, bodyTop + 1 - swing, 1, 4);
-  px(ctx, skin, ox + 3, bodyTop + 5 + swing);
-  px(ctx, skin, ox + 12, bodyTop + 5 - swing);
+  rect(3, b0 + 1 + swing, 1, 4, s.robe);
+  rect(12, b0 + 1 - swing, 1, 4, s.robeShade);
+  set(3, b0 + 5 + swing, skin);
+  set(12, b0 + 5 - swing, skinShade);
   // 발
   const lf = frame === 1 ? 1 : 0;
   const rf = frame === 3 ? 1 : 0;
-  px(ctx, PAL.bark, ox + 5, 21 + lf, 2, 2 - lf);
-  px(ctx, PAL.bark, ox + 9, 21 + rf, 2, 2 - rf);
-  if (s.glow) {
-    ctx.globalCompositeOperation = 'source-atop';
-    ctx.fillStyle = 'rgba(255,240,200,0.25)';
-    ctx.fillRect(ox, 0, 16, 24);
-    ctx.globalCompositeOperation = 'source-over';
-  }
+  rect(5, feet - lf, 2, 1 + lf, PAL.mud);
+  rect(9, feet - rf, 2, 1 + rf, PAL.mud);
 }
 
+/** 앞(0–3)·뒤(4–7)·옆(8–11) 걷기 프레임을 한 장에 그린다. */
 export function makePerson(scene: Phaser.Scene, key: string, style: PersonStyle) {
-  const tex = canvasTexture(scene, key, 64, 24, (ctx) => {
-    for (let f = 0; f < 4; f++) drawPerson(ctx, f * 16, f, style);
+  const frames = FACINGS.length * 4;
+  const tex = canvasTexture(scene, key, FRAME_W * frames, FRAME_H, (ctx) => {
+    FACINGS.forEach((dir, d) => {
+      for (let f = 0; f < 4; f++) {
+        const p = new Pix(FRAME_W, FRAME_H);
+        drawPerson(p, 0, dir, f, style);
+        p.outline();
+        p.draw(ctx, (d * 4 + f) * FRAME_W, 0);
+      }
+    });
   });
-  for (let f = 0; f < 4; f++) tex.add(f, 0, f * 16, 0, 16, 24);
-  scene.anims.create({
-    key: `${key}-walk`,
-    frames: scene.anims.generateFrameNumbers(key, { frames: [0, 1, 2, 3] }),
-    frameRate: 8,
-    repeat: -1,
-  });
+  for (let i = 0; i < frames; i++) tex.add(i, 0, i * FRAME_W, 0, FRAME_W, FRAME_H);
+  FACINGS.forEach((dir, d) =>
+    scene.anims.create({
+      key: `${key}-walk-${dir}`,
+      frames: scene.anims.generateFrameNumbers(key, { frames: [0, 1, 2, 3].map((f) => d * 4 + f) }),
+      frameRate: 8,
+      repeat: -1,
+    }),
+  );
 }
 
-/** 16×14 앉은 사람(무리) */
-function makeSitter(scene: Phaser.Scene, key: string, robe: number, head: number) {
-  canvasTexture(scene, key, 16, 14, (ctx) => {
-    px(ctx, PAL.skin, 5, 1, 6, 5);
-    px(ctx, head, 4, 0, 8, 2);
-    px(ctx, PAL.ink, 6, 3);
-    px(ctx, PAL.ink, 9, 3);
-    px(ctx, robe, 3, 6, 10, 6);
-    px(ctx, robe, 2, 10, 12, 3);
-  });
+/** 움직이는 방향에 맞춰 걷기 모습을 고른다. 멈추면 그 방향으로 선다. */
+export function faceAndWalk(sprite: Phaser.GameObjects.Sprite, key: string, vx: number, vy: number) {
+  if (vx === 0 && vy === 0) {
+    if (sprite.anims.isPlaying) {
+      const dir = (sprite.getData('facing') as Facing) ?? 'down';
+      sprite.anims.stop();
+      sprite.setFrame(FACINGS.indexOf(dir) * 4);
+    }
+    return;
+  }
+  const dir: Facing = Math.abs(vx) >= Math.abs(vy) ? 'side' : vy < 0 ? 'up' : 'down';
+  if (dir === 'side') sprite.setFlipX(vx < 0);
+  else sprite.setFlipX(false);
+  sprite.setData('facing', dir);
+  const anim = `${key}-walk-${dir}`;
+  if (sprite.anims.currentAnim?.key !== anim || !sprite.anims.isPlaying) sprite.play(anim, true);
 }
 
-export const ROBES = [PAL.wine, PAL.olive, PAL.sea, PAL.amber, PAL.stone, PAL.teal, PAL.wood, PAL.rose];
-export const HEADS = [PAL.mist, PAL.parchment, PAL.hair, PAL.sand, PAL.white];
+/** 서 있는 모습으로 방향만 바꾼다. */
+export function faceTo(sprite: Phaser.GameObjects.Sprite, dir: Facing, left = false) {
+  sprite.anims.stop();
+  sprite.setData('facing', dir);
+  sprite.setFlipX(dir === 'side' && left);
+  sprite.setFrame(FACINGS.indexOf(dir) * 4);
+}
+
+/** 16×16 앉은 사람(무리) */
+function makeSitter(scene: Phaser.Scene, key: string, robe: number, robeShade: number, head: number, headShade: number) {
+  const p = new Pix(16, 16);
+  p.rect(5, 1, 6, 2, head);
+  p.rect(4, 2, 8, 1, head);
+  p.rect(5, 3, 6, 4, PAL.cream);
+  p.rect(4, 3, 1, 4, head);
+  p.rect(11, 3, 1, 4, headShade);
+  p.rect(10, 3, 1, 4, PAL.peach);
+  p.set(6, 4, PAL.ink);
+  p.set(9, 4, PAL.ink);
+  p.set(5, 5, PAL.salmon);
+  p.rect(4, 7, 8, 4, robe);
+  p.rect(2, 10, 12, 3, robe);
+  p.rect(10, 7, 2, 4, robeShade);
+  p.rect(11, 10, 3, 3, robeShade);
+  p.rect(6, 10, 4, 1, robeShade);
+  p.outline();
+  pixTexture(scene, key, p);
+}
+
+const ROBE_SET: [number, number][] = [
+  [PAL.berry, PAL.wine],
+  [PAL.olive, PAL.moss],
+  [PAL.navy, PAL.indigo],
+  [PAL.tan, PAL.clay],
+  [PAL.purple, PAL.grape],
+  [PAL.aqua, PAL.teal],
+  [PAL.khaki, PAL.taupe],
+  [PAL.salmon, PAL.brick],
+];
+const HEAD_SET: [number, number][] = [
+  [PAL.mist, PAL.steel],
+  [PAL.cream, PAL.peach],
+  [PAL.honey, PAL.tan],
+  [PAL.lavender, PAL.lilac],
+  [PAL.white, PAL.mist],
+];
 
 export function generateTextures(scene: Phaser.Scene) {
   if (scene.textures.exists('player')) return;
 
-  makePerson(scene, 'player', { robe: PAL.teal, sash: PAL.gold, hair: PAL.hair, kid: true });
-  makePerson(scene, 'kid-cry', { robe: PAL.rose, sash: PAL.white, hair: PAL.bark, kid: true });
-  makePerson(scene, 'kid-lunch', { robe: PAL.sandDark, sash: PAL.wood, hair: PAL.hair, kid: true });
-  makePerson(scene, 'light-figure', { robe: PAL.white, sash: PAL.gold, hair: PAL.hair, glow: true });
+  makePerson(scene, 'player', { robe: PAL.aqua, robeShade: PAL.teal, sash: PAL.gold, hair: PAL.mud, hairShade: PAL.ink, kid: true });
+  makePerson(scene, 'kid-cry', { robe: PAL.rose, robeShade: PAL.berry, sash: PAL.white, hair: PAL.rust, hairShade: PAL.bark, kid: true });
+  makePerson(scene, 'kid-lunch', { robe: PAL.honey, robeShade: PAL.tan, sash: PAL.clay, hair: PAL.mud, kid: true });
+  makePerson(scene, 'light-figure', { robe: PAL.white, robeShade: PAL.mist, sash: PAL.gold, hair: PAL.mud, skin: PAL.cream });
   for (let i = 0; i < 6; i++) {
+    const [robe, robeShade] = ROBE_SET[i];
+    const [cloth, clothShade] = HEAD_SET[i % HEAD_SET.length];
     makePerson(scene, `crowd${i}`, {
-      robe: ROBES[i % ROBES.length],
-      sash: ROBES[(i + 3) % ROBES.length],
-      hair: PAL.hair,
-      headcloth: HEADS[i % HEADS.length],
-      skin: i % 2 ? PAL.skinDark : PAL.skin,
+      robe,
+      robeShade,
+      sash: ROBE_SET[(i + 3) % ROBE_SET.length][0],
+      hair: PAL.mud,
+      headcloth: cloth,
+      headclothShade: clothShade,
+      skin: i % 2 ? PAL.tan : PAL.cream,
+      skinShade: i % 2 ? PAL.clay : PAL.peach,
     });
   }
-  ROBES.forEach((r, i) => makeSitter(scene, `sitter${i}`, r, HEADS[i % HEADS.length]));
+  ROBE_SET.forEach(([r, rs], i) => makeSitter(scene, `sitter${i}`, r, rs, ...HEAD_SET[i % HEAD_SET.length]));
 
-  // 음식과 바구니
-  canvasTexture(scene, 'bread', 10, 7, (ctx) =>
-    drawMap(ctx, 0, 0, ['..cccccc..', '.cbbbbbbc.', 'cbbbbbbbbc', 'cbbbbbbbbc', 'cbbbbbbbbc', '.cccccccc.', '..........'], {
-      c: PAL.crust,
-      b: PAL.bread,
-    }),
-  );
-  canvasTexture(scene, 'fish', 11, 6, (ctx) =>
-    drawMap(ctx, 0, 0, ['..sssss..s.', '.sLLLLLs.ss', 'sLeLLLLLss.', 'sLLLLLLLss.', '.sLLLLLs.ss', '..sssss..s.'], {
-      s: PAL.shadow,
-      L: PAL.mist,
-      e: PAL.ink,
-    }),
-  );
-  canvasTexture(scene, 'crumb', 4, 4, (ctx) => drawMap(ctx, 0, 0, ['.cc.', 'cbbc', 'cbbc', '.cc.'], { c: PAL.crust, b: PAL.bread }));
-  canvasTexture(scene, 'fig', 7, 7, (ctx) =>
-    drawMap(ctx, 0, 0, ['...g...', '..ww...', '.wwww..', 'wwwwww.', 'wwrwww.', '.wwww..', '..ww...'], {
-      g: PAL.grassDark,
-      w: PAL.wine,
-      r: PAL.rose,
-    }),
-  );
-  canvasTexture(scene, 'basket', 14, 10, (ctx) =>
-    drawMap(
-      ctx,
-      0,
-      0,
-      [
-        '...wwwwwwww...',
-        '..w........w..',
-        '.w..........w.',
-        'WWWWWWWWWWWWWW',
-        'WdWdWdWdWdWdWW',
-        'WWWWWWWWWWWWWW',
-        '.WdWdWdWdWdWW.',
-        '.WWWWWWWWWWWW.',
-        '..WdWdWdWdWW..',
-        '...WWWWWWWW...',
-      ],
-      { w: PAL.wood, W: PAL.sandDark, d: PAL.wood },
-    ),
-  );
-  canvasTexture(scene, 'basket-full', 14, 10, (ctx) => {
-    drawMap(ctx, 0, 0, ['...wwwwwwww...', '..wbcbbcbbcw..', '.wbbcbbbcbbbw.'], { w: PAL.wood, b: PAL.bread, c: PAL.crust });
-    drawMap(
-      ctx,
-      0,
-      3,
-      ['WWWWWWWWWWWWWW', 'WdWdWdWdWdWdWW', 'WWWWWWWWWWWWWW', '.WdWdWdWdWdWW.', '.WWWWWWWWWWWW.', '..WdWdWdWdWW..', '...WWWWWWWW...'],
-      { W: PAL.sandDark, d: PAL.wood },
-    );
+  // ───────── 음식과 바구니 ─────────
+  mapTexture(scene, 'bread', ['..hhhhhh..', '.hHHHHHHh.', 'hHHhHHhHHc', 'hHHHHHHHHc', '.cccccccc.'], {
+    h: PAL.honey,
+    H: PAL.gold,
+    c: PAL.clay,
   });
+  mapTexture(scene, 'fish', ['..sssss..s.', '.sMMMMMs.ss', 'sMeMMMMMss.', 'sSSSSSSSss.', '.sSSSSSs.ss', '..sssss..s.'], {
+    s: PAL.steel,
+    M: PAL.mist,
+    S: PAL.steel,
+    e: PAL.ink,
+  });
+  mapTexture(scene, 'crumb', ['hh', 'hc'], { h: PAL.honey, c: PAL.clay });
+  mapTexture(scene, 'fig', ['..g..', '.ww..', 'wwWw.', 'wWwww', 'wwwwp', '.www.'], {
+    g: PAL.forest,
+    w: PAL.purple,
+    W: PAL.lilac,
+    p: PAL.grape,
+  });
+  const basketRows = ['WWWWWWWWWWWW', 'WdWdWdWdWdWd', 'WWWWWWWWWWWW', '.WdWdWdWdWd.', '.WWWWWWWWWW.', '..dddddddd..'];
+  mapTexture(scene, 'basket', basketRows, { W: PAL.khaki, d: PAL.taupe });
+  mapTexture(scene, 'basket-full', ['.hHhHhhHhc..', 'hHhHhHhHhHc.', ...basketRows], {
+    h: PAL.honey,
+    H: PAL.gold,
+    c: PAL.clay,
+    W: PAL.khaki,
+    d: PAL.taupe,
+  });
+  mapTexture(scene, 'heart', ['rr.rr', 'rWrrr', 'rrrrr', '.rrr.', '..r..'], { r: PAL.pink, W: PAL.white });
 
-  // 말풍선 아이콘 배경
-  canvasTexture(scene, 'bubble', 16, 14, (ctx) =>
-    drawMap(
-      ctx,
-      0,
-      0,
-      [
-        '..wwwwwwwwwwww..',
-        '.wWWWWWWWWWWWWw.',
-        'wWWWWWWWWWWWWWWw',
-        'wWWWWWWWWWWWWWWw',
-        'wWWWWWWWWWWWWWWw',
-        'wWWWWWWWWWWWWWWw',
-        'wWWWWWWWWWWWWWWw',
-        'wWWWWWWWWWWWWWWw',
-        'wWWWWWWWWWWWWWWw',
-        '.wWWWWWWWWWWWWw.',
-        '..wwwwwWWwwwww..',
-        '......wWw.......',
-        '......ww........',
-        '................',
-      ],
-      { w: PAL.ink, W: PAL.white },
-    ),
+  // 말풍선
+  mapTexture(
+    scene,
+    'bubble',
+    ['.WWWWWWWWWWWW.', 'WWWWWWWWWWWWWW', 'WWWWWWWWWWWWWW', 'WWWWWWWWWWWWWW', 'WWWWWWWWWWWWWW', 'WWWWWWWWWWWWWW', 'WWWWWWWWWWWWWW', '.WWWWWWWWWWWW.', '.....WWW......', '......W.......'],
+    { W: PAL.white },
   );
 
-  // 땅
-  // 잔디는 대부분 민무늬로 두고, 풀포기와 꽃은 드문드문 섞는다(grassTile 참고).
-  canvasTexture(scene, 'grass', 16, 16, (ctx) => px(ctx, PAL.grass, 0, 0, 16, 16));
-  canvasTexture(scene, 'grass-tuft', 16, 16, (ctx) => {
-    px(ctx, PAL.grass, 0, 0, 16, 16);
-    drawMap(ctx, 5, 8, ['.g..g', '.g.g.', 'g.gg.', '.ggg.'], { g: PAL.grassDark });
-  });
-  canvasTexture(scene, 'grass-flower', 16, 16, (ctx) => {
-    px(ctx, PAL.grass, 0, 0, 16, 16);
-    drawMap(ctx, 6, 6, ['.r.', 'ryr', '.r.', '.g.', '.g.'], { r: PAL.rose, y: PAL.gold, g: PAL.grassDark });
-  });
+  // ───────── 땅 ─────────
+  const grassBase = (p: Pix) => {
+    p.rect(0, 0, 16, 16, PAL.forest);
+  };
+  const tile = (key: string, extra?: (p: Pix) => void) => {
+    const p = new Pix(16, 16);
+    grassBase(p);
+    extra?.(p);
+    pixTexture(scene, key, p);
+  };
+  tile('grass');
+  tile('grass-tuft', (p) => p.map(5, 8, ['g...g', '.g.g.', 'pgpgp'], { g: PAL.grass, p: PAL.pine }));
+  tile('grass-flower', (p) => p.map(6, 5, ['.p.', 'pWp', '.p.', '.f.', 'fLf'], { p: PAL.pink, W: PAL.honey, f: PAL.pine, L: PAL.grass }));
+  tile('grass-flower2', (p) => p.map(4, 7, ['.l.', 'lWl', '.l.', '..f', '...'], { l: PAL.lavender, W: PAL.white, f: PAL.pine }));
   canvasTexture(scene, 'sand', 16, 16, (ctx) => {
-    px(ctx, PAL.sand, 0, 0, 16, 16);
-    for (const [x, y] of [[3, 2], [10, 5], [6, 11], [13, 13], [1, 8]]) px(ctx, PAL.sandDark, x, y);
+    const p = new Pix(16, 16);
+    p.rect(0, 0, 16, 16, PAL.honey);
+    for (const [x, y] of [
+      [3, 2],
+      [10, 5],
+      [6, 11],
+      [13, 13],
+    ])
+      p.set(x, y, PAL.tan);
+    p.draw(ctx);
   });
-  canvasTexture(scene, 'water', 16, 16, (ctx) => {
-    px(ctx, PAL.sea, 0, 0, 16, 16);
-    px(ctx, PAL.seaLight, 2, 4, 5, 1);
-    px(ctx, PAL.seaLight, 9, 11, 5, 1);
+  canvasTexture(scene, 'water', 32, 16, (ctx) => {
+    const p = new Pix(32, 16);
+    p.rect(0, 0, 32, 16, PAL.sky);
+    p.map(0, 3, ['..FFFF..........................', '.F....F.........................'], { F: PAL.skyLight });
+    p.map(0, 10, ['..................FFFF..........', '.................F....F.........'], { F: PAL.skyLight });
+    p.set(9, 6, PAL.foam);
+    p.set(26, 13, PAL.foam);
+    p.draw(ctx);
   });
-  canvasTexture(scene, 'rock', 16, 12, (ctx) =>
-    drawMap(
-      ctx,
-      0,
-      0,
-      [
-        '....ssssss......',
-        '..sSSSSSSSss....',
-        '.sSmmSSSSSSSs...',
-        '.sSmSSSSSSSSSs..',
-        'sSSSSSSSSSSSSSs.',
-        'sSSSSSSSSSSSSSSs',
-        'sSSSSSSSSSSSSSSs',
-        'sSSSSSSSSSSSSSSs',
-        '.sSSSSSSSSSSSSs.',
-        '..ssssssssssss..',
-        '................',
-        '................',
-      ],
-      { s: PAL.shadow, S: PAL.stone, m: PAL.mist },
-    ),
+  mapTexture(
+    scene,
+    'rock',
+    ['....SSSSSS....', '..SSmmSSSSSS..', '.SSmSSSSSSSSs.', 'SSSSSSSSSSSSss', 'SSSSSSSSSSSsss', '.sssssssssss..'],
+    { S: PAL.steel, m: PAL.mist, s: PAL.stone },
   );
+  mapTexture(
+    scene,
+    'bush',
+    ['...LLLL.....', '.LLllLLLL...', 'LLllLLLLLL..', 'LLLLLLLLFFL.', 'LLLLLLFFFFFF', '.FFFFFFFFFF.'],
+    { L: PAL.leaf, l: PAL.lime, F: PAL.forest },
+  );
+  // 올리브 나무
+  mapTexture(
+    scene,
+    'tree',
+    [
+      '......llllll......',
+      '....llOOOOOOll....',
+      '...lOOOOOOOOOOl...',
+      '..lOOOlOOOOOOOOl..',
+      '.lOOOlOOOOOOOOOOl.',
+      '.lOOOOOOOOOOOOOmm.',
+      'lOOOOOOOOOOOOOOOml',
+      'lOOOOOOOOOOOOOOmml',
+      'lOOOOOOOOOOOOOmmml',
+      '.mOOOOOOOOOOOmmmm.',
+      '.mmOOOOOOOOmmmmmm.',
+      '..mmmmOOOmmmmmmm..',
+      '...mmmmmmmmmmmm...',
+      '.....mmmbbmmm.....',
+      '........bB........',
+      '........bB........',
+      '.......bbBb.......',
+      '.......bBBb.......',
+      '......bbBBBb......',
+    ],
+    { l: PAL.lime, O: PAL.olive, m: PAL.moss, b: PAL.bark, B: PAL.rust },
+  );
+  mapTexture(scene, 'cloud', ['......WWWW..........', '...WWWWWWWWW..WWW...', '.WWWWWWWWWWWWWWWWWW.', 'WWWWWWWWWWWWWWWWWWWW', 'MMMMMMMMMMMMMMMMMMMM'], { W: PAL.white, M: PAL.mist }, false);
 
-  // 1장 빛 퍼즐 타일
+  // ───────── 1장 빛 퍼즐 ─────────
   canvasTexture(scene, 'tile-floor', 16, 16, (ctx) => {
-    px(ctx, PAL.dusk, 0, 0, 16, 16);
-    px(ctx, PAL.night, 0, 15, 16, 1);
-    px(ctx, PAL.night, 15, 0, 1, 16);
+    const p = new Pix(16, 16);
+    p.rect(0, 0, 16, 16, PAL.indigo);
+    p.rect(0, 15, 16, 1, PAL.dusk);
+    p.rect(15, 0, 1, 16, PAL.dusk);
+    p.set(3, 4, PAL.navy);
+    p.set(10, 9, PAL.navy);
+    p.draw(ctx);
   });
   canvasTexture(scene, 'tile-wall', 16, 16, (ctx) => {
-    px(ctx, PAL.shadow, 0, 0, 16, 16);
-    px(ctx, PAL.stone, 1, 1, 6, 6);
-    px(ctx, PAL.stone, 9, 1, 6, 6);
-    px(ctx, PAL.stone, 5, 9, 6, 6);
-    px(ctx, PAL.stone, 0, 9, 3, 6);
-    px(ctx, PAL.stone, 13, 9, 3, 6);
+    const p = new Pix(16, 16);
+    p.rect(0, 0, 16, 16, PAL.ink);
+    for (const [x, y, w] of [
+      [0, 1, 7],
+      [8, 1, 8],
+      [0, 9, 3],
+      [4, 9, 8],
+      [13, 9, 3],
+    ]) {
+      p.rect(x, y, w, 6, PAL.shadow);
+      p.rect(x, y, w, 1, PAL.stone);
+      p.rect(x, y + 5, w, 1, PAL.mauve);
+    }
+    p.draw(ctx);
   });
-  for (const [key, flip] of [['mirror-slash', false], ['mirror-back', true]] as const) {
-    canvasTexture(scene, key, 16, 16, (ctx) => {
-      px(ctx, PAL.wood, 6, 13, 4, 3);
-      for (let i = 0; i < 12; i++) {
-        const x = flip ? 2 + i : 13 - i;
-        px(ctx, PAL.mist, x, 2 + i, 2, 1);
-        px(ctx, PAL.white, x, 2 + i);
-      }
-    });
+  for (const [key, flip] of [
+    ['mirror-slash', false],
+    ['mirror-back', true],
+  ] as const) {
+    const p = new Pix(16, 16);
+    for (let i = 0; i < 11; i++) {
+      const x = flip ? 2 + i : 13 - i;
+      p.set(x, 2 + i, PAL.white);
+      p.set(x + (flip ? 1 : -1), 2 + i, PAL.mist);
+      p.set(x + (flip ? -1 : 1), 2 + i, PAL.steel);
+    }
+    p.rect(6, 13, 4, 2, PAL.rust);
+    p.outline();
+    pixTexture(scene, key, p);
   }
-  canvasTexture(scene, 'lamp-off', 16, 16, (ctx) =>
-    drawMap(
-      ctx,
-      0,
-      0,
-      [
-        '................',
-        '................',
-        '................',
-        '................',
-        '.......s........',
-        '......sss.......',
-        '................',
-        '..cccccccccccc..',
-        '.cCCCCCCCCCCCCc.',
-        '..cCCCCCCCCCCc..',
-        '...cccccccccc...',
-        '.......cc.......',
-        '......cCCc......',
-        '.....cccccc.....',
-        '................',
-        '................',
-      ],
-      { c: PAL.bark, C: PAL.wood, s: PAL.shadow },
-    ),
-  );
-  canvasTexture(scene, 'lamp-on', 16, 16, (ctx) =>
-    drawMap(
-      ctx,
-      0,
-      0,
-      [
-        '.......g........',
-        '......gyg.......',
-        '......gyg.......',
-        '.....gyWyg......',
-        '......aga.......',
-        '.......a........',
-        '................',
-        '..cccccccccccc..',
-        '.cCCCCCCCCCCCCc.',
-        '..cCCCCCCCCCCc..',
-        '...cccccccccc...',
-        '.......cc.......',
-        '......cCCc......',
-        '.....cccccc.....',
-        '................',
-        '................',
-      ],
-      { c: PAL.crust, C: PAL.bread, g: PAL.amber, y: PAL.gold, W: PAL.white, a: PAL.ember },
-    ),
-  );
-  canvasTexture(scene, 'emitter', 16, 16, (ctx) => {
-    px(ctx, PAL.gold, 4, 4, 8, 8);
-    px(ctx, PAL.white, 6, 6, 4, 4);
-    px(ctx, PAL.amber, 3, 5, 1, 6);
-    px(ctx, PAL.amber, 12, 5, 1, 6);
-    px(ctx, PAL.amber, 5, 3, 6, 1);
-    px(ctx, PAL.amber, 5, 12, 6, 1);
+  mapTexture(scene, 'lamp-off', ['.....c.....', '....ccc....', '...........', 'CCCCCCCCCCC', '.CkkkkkkkC.', '..CCCCCCC..', '....CkC....', '...CCCCC...'], {
+    c: PAL.shadow,
+    C: PAL.rust,
+    k: PAL.clay,
+  });
+  mapTexture(scene, 'lamp-on', ['.....g.....', '....gyg....', '...gyWyg...', 'CCCCfCCCCCC', '.CkkkkkkkC.', '..CCCCCCC..', '....CkC....', '...CCCCC...'], {
+    g: PAL.flame,
+    y: PAL.gold,
+    W: PAL.white,
+    f: PAL.orange,
+    C: PAL.rust,
+    k: PAL.honey,
+  });
+  mapTexture(scene, 'emitter', ['..oooo..', '.oyyyyo.', 'oyyWWyyo', 'oyWWWWyo', 'oyWWWWyo', 'oyyWWyyo', '.oyyyyo.', '..oooo..'], {
+    o: PAL.orange,
+    y: PAL.gold,
+    W: PAL.white,
   });
 
-  // 모닥불(3프레임)
-  const fire = canvasTexture(scene, 'campfire', 48, 20, (ctx) => {
+  // ───────── 모닥불(3프레임) ─────────
+  const fire = canvasTexture(scene, 'campfire', 48, 22, (ctx) => {
     const flames = [
-      ['......a.........', '.....aya........', '....ayWya.......', '...aayWyaa......', '...ayWWWya......', '....ayWya.......'],
-      ['.......a........', '......aya.......', '.....ayWya......', '....ayWWya......', '...aayWWyaa.....', '....ayWya.......'],
-      ['.....a..........', '....aya..a......', '...ayWyaaya.....', '...ayWWya.......', '...aayWyaa......', '....ayWya.......'],
+      ['.....r.....', '....rfr....', '...rfyfr...', '..rfyWyfr..', '..rfyWyfr..', '...rfyfr...'],
+      ['......r....', '....rfr....', '...rfyfr...', '...rfyWfr..', '..rfyWWyfr.', '...rfyfr...'],
+      ['....r......', '...rfr..r..', '..rfyfrrf..', '..rfWyfr...', '..rfyWyfr..', '...rfyfr...'],
     ];
     flames.forEach((rows, f) => {
-      drawMap(ctx, f * 16, 6, rows, { a: PAL.ember, y: PAL.amber, W: PAL.gold });
-      drawMap(ctx, f * 16, 12, ['.bbbb....bbbb...', '..bbbbbbbbbb....', '....bbbbbb......', '..bb......bb....'], { b: PAL.wood });
+      const p = new Pix(16, 22);
+      p.map(2, 6, rows, { r: PAL.red, f: PAL.flame, y: PAL.gold, W: PAL.white });
+      p.map(1, 12, ['.LLLL..LLLL..', '..LLLLLLLL...', 'sS.LLLLLL.Ss.', 'SSs......sSS.'], { L: PAL.rust, s: PAL.stone, S: PAL.steel });
+      p.outline();
+      p.draw(ctx, f * 16, 0);
     });
   });
-  for (let f = 0; f < 3; f++) fire.add(f, 0, f * 16, 0, 16, 20);
-  scene.anims.create({ key: 'campfire-burn', frames: scene.anims.generateFrameNumbers('campfire', { frames: [0, 1, 2] }), frameRate: 6, repeat: -1 });
+  for (let f = 0; f < 3; f++) fire.add(f, 0, f * 16, 0, 16, 22);
+  scene.anims.create({ key: 'campfire-burn', frames: scene.anims.generateFrameNumbers('campfire', { frames: [0, 1, 2] }), frameRate: 7, repeat: -1 });
 
-  // 부드러운 빛(원형 그라데이션)과 가장자리 흐림
+  // 부드러운 빛(원형 그라데이션)과 가장자리 어둠
   canvasTexture(scene, 'halo', 64, 64, (ctx) => {
     const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    g.addColorStop(0, 'rgba(255,244,214,0.9)');
-    g.addColorStop(1, 'rgba(255,244,214,0)');
+    g.addColorStop(0, 'rgba(255,236,190,0.9)');
+    g.addColorStop(1, 'rgba(255,236,190,0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 64, 64);
   });
   canvasTexture(scene, 'vignette', 320, 180, (ctx) => {
     const g = ctx.createRadialGradient(160, 90, 60, 160, 90, 200);
-    g.addColorStop(0, 'rgba(61,54,86,0)');
-    g.addColorStop(1, 'rgba(61,54,86,1)');
+    g.addColorStop(0, 'rgba(46,34,47,0)');
+    g.addColorStop(1, 'rgba(46,34,47,1)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 320, 180);
   });
@@ -365,5 +514,5 @@ export function generateTextures(scene: Phaser.Scene) {
 /** 좌표마다 같은 결과가 나오는 잔디 타일 고르기. 풀포기 약 8%, 꽃 약 3%. */
 export function grassTile(x: number, y: number): string {
   const h = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
-  return h < 0.03 ? 'grass-flower' : h < 0.11 ? 'grass-tuft' : 'grass';
+  return h < 0.015 ? 'grass-flower' : h < 0.03 ? 'grass-flower2' : h < 0.11 ? 'grass-tuft' : 'grass';
 }

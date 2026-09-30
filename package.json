@@ -5,12 +5,13 @@
   "description": "일곱 표적: 와서 보라 — 요한복음 도트 게임",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run fonts && vite",
+    "fonts": "tsx scripts/build-fonts.ts",
     "verify:scripture": "tsx scripts/verify-scripture.ts",
     "import:scripture": "tsx scripts/import-scripture.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "npm run verify:scripture && tsc --noEmit && vite build",
+    "build": "npm run verify:scripture && npm run fonts && tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

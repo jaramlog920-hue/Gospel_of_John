@@ -1,71 +1,54 @@
 // 일기장 한 쪽. 게임 텍스트라서 두루마리와 다른 모양(줄 공책)으로 그린다(설계 원칙 2).
 // 아래에 그날 받은 본문 참조가 붙어 있고, 누르면 두루마리가 열린다.
 import Phaser from 'phaser';
-import { css, PAL } from '../art/palette.ts';
+import { PAL } from '../art/palette.ts';
 import { Scripture } from '../data/Scripture.ts';
 import { DIARY, diaryText } from '../diary/index.ts';
 import type { DiaryRecord } from '../state/save.ts';
 import { EMOTIONS } from '../state/types.ts';
-import { FONT_UI, SIZE_UI } from './layout.ts';
+import { drawPanel } from './panel.ts';
 import { openScroll } from './ScrollFrame.ts';
-import { DEPTH_UI, measurer } from './text.ts';
+import { bt, DEPTH_UI, measurer, Tag } from './text.ts';
 import { wrapWords } from './wrap.ts';
+
+const LINE = 14;
 
 export function showDiaryPage(scene: Phaser.Scene, rec: DiaryRecord, opts: { typing: boolean; closeLabel: string }): Promise<void> {
   const d = DIARY[rec.ch];
-  const measure = measurer(FONT_UI, SIZE_UI);
+  const measure = measurer('ui');
   const { width: W, height: H } = scene.scale;
   const pw = Math.min(W - 16, 280);
-  const lines = wrapWords(diaryText(rec.ch, rec.emotion, rec.flags), pw - 28, measure);
-  const ph = Math.min(H - 16, 36 + lines.length * 14 + 40);
-  const PAGE = { x: Math.floor((W - pw) / 2), y: Math.floor((H - ph) / 2), w: pw, h: ph, pad: 14, line: 14 };
+  const lines = wrapWords(diaryText(rec.ch, rec.emotion, rec.flags), pw - 32, measure);
+  const ph = Math.min(H - 16, 40 + lines.length * LINE + 34);
+  const P = { x: Math.floor((W - pw) / 2), y: Math.floor((H - ph) / 2), w: pw, h: ph, pad: 16 };
   const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH_UI + 8);
 
-  const g = scene.add.graphics();
-  g.fillStyle(PAL.ink, 0.5).fillRect(0, 0, W, H);
-  g.fillStyle(PAL.bark).fillRect(PAGE.x - 3, PAGE.y - 3, PAGE.w + 6, PAGE.h + 6);
-  g.fillStyle(PAL.white).fillRect(PAGE.x, PAGE.y, PAGE.w, PAGE.h);
-  g.fillStyle(PAL.sky, 0.6);
-  for (let y = PAGE.y + 36; y < PAGE.y + PAGE.h - 30; y += PAGE.line) g.fillRect(PAGE.x + 6, y + 11, PAGE.w - 12, 1);
-  g.fillStyle(PAL.rose).fillRect(PAGE.x + 10, PAGE.y, 1, PAGE.h);
+  root.add(scene.add.rectangle(0, 0, W, H, PAL.ink, 0.55).setOrigin(0));
+  const g = drawPanel(scene.add.graphics(), P.x, P.y, P.w, P.h, 'light');
+  // 줄 공책: 파란 가로줄과 분홍 여백선, 위쪽 제본 구멍
+  g.fillStyle(PAL.skyLight);
+  for (let i = 0; i < lines.length; i++) g.fillRect(P.x + 6, P.y + 40 + i * LINE + 12, P.w - 12, 1);
+  g.fillStyle(PAL.rose).fillRect(P.x + 11, P.y + 2, 1, P.h - 4);
+  g.fillStyle(PAL.mist);
+  for (let hx = P.x + 24; hx < P.x + P.w - 12; hx += 22) g.fillRect(hx, P.y + 4, 3, 3);
   root.add(g);
 
   const emotion = EMOTIONS.find((e) => e.key === rec.emotion)!.label;
-  root.add(scene.add.text(PAGE.x + PAGE.pad, PAGE.y + 8, `${rec.ch}장 · ${d.title}`, { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.ink) }));
-  root.add(
-    scene.add.text(PAGE.x + PAGE.w - PAGE.pad, PAGE.y + 20, `오늘의 마음: ${emotion}`, { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.wine) }).setOrigin(1, 0),
-  );
-  const bodies = lines.map((_, i) =>
-    scene.add.text(PAGE.x + PAGE.pad, PAGE.y + 36 + i * PAGE.line, '', { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.night) }),
-  );
+  root.add(bt(scene, P.x + P.pad, P.y + 12, `${rec.ch}장 · ${d.title}`, PAL.ink, 'body'));
+  root.add(new Tag(scene, P.x + P.w - P.pad + 4, P.y + 12, emotion, { fg: PAL.white, bg: PAL.berry, originX: 1, padX: 4, padY: 2 }));
+  const bodies = lines.map((_, i) => bt(scene, P.x + P.pad, P.y + 40 + i * LINE - 1, '', PAL.night));
   root.add(bodies);
 
-  // 본문 참조 칩
-  let cx = PAGE.x + PAGE.pad;
+  // 본문 참조 칩(누르면 두루마리) + 닫기 버튼
+  let cx = P.x + P.pad;
+  const chipY = P.y + P.h - 22;
   const chips = d.refs.map((ref) => {
-    const chip = scene.add
-      .text(cx, PAGE.y + PAGE.h - 22, Scripture.label(ref), {
-        fontFamily: FONT_UI,
-        fontSize: '10px',
-        color: css(PAL.ink),
-        backgroundColor: css(PAL.parchment),
-        padding: { x: 4, y: 2 },
-      })
-      .setInteractive({ useHandCursor: true });
-    cx += chip.width + 6;
+    const chip = new Tag(scene, cx, chipY, `두루마리 ${Scripture.label(ref)}`, { fg: PAL.ink, bg: PAL.cream, border: PAL.rust, padY: 4 });
+    cx += chip.boxWidth + 6;
     return { chip, ref };
   });
   root.add(chips.map((c) => c.chip));
-  const close = scene.add
-    .text(PAGE.x + PAGE.w - PAGE.pad, PAGE.y + PAGE.h - 22, opts.closeLabel, {
-      fontFamily: FONT_UI,
-      fontSize: '10px',
-      color: css(PAL.white),
-      backgroundColor: css(PAL.teal),
-      padding: { x: 5, y: 2 },
-    })
-    .setOrigin(1, 0)
-    .setInteractive({ useHandCursor: true });
+  const close = new Tag(scene, P.x + P.w - P.pad + 4, chipY, opts.closeLabel, { fg: PAL.white, bg: PAL.teal, border: PAL.ink, originX: 1, padX: 8, padY: 4 });
   root.add(close);
 
   let scrollOpen = false;
@@ -78,7 +61,7 @@ export function showDiaryPage(scene: Phaser.Scene, rec: DiaryRecord, opts: { typ
     let li = 0;
     let ci = 0;
     const ev = scene.time.addEvent({
-      delay: 45,
+      delay: 40,
       loop: true,
       callback: () => {
         if (typingDone) return ev.remove();

@@ -1,18 +1,19 @@
 import Phaser from 'phaser';
 import { generateTextures } from '../art/textures.ts';
-import { FONT_SCRIPTURE, FONT_UI, SIZE_SCRIPTURE, SIZE_UI } from '../ui/layout.ts';
+import { FONT_KEY, registerFontMetrics } from '../ui/text.ts';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('Boot');
   }
 
-  async create() {
-    // 폰트가 준비되기 전에 글자를 그리면 대체 폰트로 굳어 버린다.
-    await Promise.all([
-      document.fonts.load(`${SIZE_SCRIPTURE}px ${FONT_SCRIPTURE}`, '가'),
-      document.fonts.load(`${SIZE_UI}px ${FONT_UI}`, '가'),
-    ]).catch(() => undefined);
+  preload() {
+    // 비트맵 폰트(scripts/build-fonts.ts가 만든 파일)
+    for (const key of Object.values(FONT_KEY)) this.load.bitmapFont(key, `assets/fonts/gen/${key}.png`, `assets/fonts/gen/${key}.xml`);
+  }
+
+  create() {
+    registerFontMetrics(this);
     generateTextures(this);
     const params = new URLSearchParams(location.search);
     const start = params.get('scene');

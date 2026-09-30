@@ -12,7 +12,7 @@ export class DiaryScene extends Phaser.Scene {
   }
 
   async create() {
-    this.cameras.main.setBackgroundColor(PAL.bark);
+    this.cameras.main.setBackgroundColor(PAL.night);
     const entries = [...Save.data.diary].sort((a, b) => a.ch - b.ch);
     if (entries.length === 0) {
       await say(this, null, '아직 쓴 일기가 없다.');
