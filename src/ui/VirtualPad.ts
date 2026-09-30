@@ -16,11 +16,18 @@ function sendKey(type: 'keydown' | 'keyup', code: string) {
 export function mountVirtualPad(container: HTMLElement) {
   container.innerHTML = `
     <div class="pad-dpad" aria-label="방향 패드">
-      <span class="pad-arrow up"></span><span class="pad-arrow down"></span>
-      <span class="pad-arrow left"></span><span class="pad-arrow right"></span>
-      <span class="pad-center"></span>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M36 4h28a4 4 0 0 1 4 4v24h24a4 4 0 0 1 4 4v28a4 4 0 0 1-4 4H68v24a4 4 0 0 1-4 4H36a4 4 0 0 1-4-4V68H8a4 4 0 0 1-4-4V36a4 4 0 0 1 4-4h24V8a4 4 0 0 1 4-4z"
+          fill="#c3a3d0" transform="translate(0 4)" />
+        <path d="M36 4h28a4 4 0 0 1 4 4v24h24a4 4 0 0 1 4 4v28a4 4 0 0 1-4 4H68v24a4 4 0 0 1-4 4H36a4 4 0 0 1-4-4V68H8a4 4 0 0 1-4-4V36a4 4 0 0 1 4-4h24V8a4 4 0 0 1 4-4z"
+          fill="#9f97bf" />
+        <circle cx="50" cy="50" r="8" fill="#8583b8" />
+        <path class="arrow up" d="M50 12l9 11H41z" />
+        <path class="arrow down" d="M50 88l-9-11h18z" />
+        <path class="arrow left" d="M12 50l11-9v18z" />
+        <path class="arrow right" d="M88 50l-11 9V41z" />
+      </svg>
     </div>
-    <div class="pad-hint">가로로 돌리면 더 크게 볼 수 있어요</div>
     <button class="pad-a" aria-label="확인">확인</button>
   `;
   const dpad = container.querySelector<HTMLElement>('.pad-dpad')!;

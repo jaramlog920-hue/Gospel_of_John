@@ -3,7 +3,7 @@
 import Phaser from 'phaser';
 import { css, PAL } from '../art/palette.ts';
 import { Scripture } from '../data/Scripture.ts';
-import { FONT_SCRIPTURE, FONT_UI, SCROLL, SCROLL_TEXT_WIDTH, SIZE_SCRIPTURE, SIZE_UI } from './layout.ts';
+import { FONT_SCRIPTURE, FONT_UI, scrollLayout, SIZE_SCRIPTURE, SIZE_UI } from './layout.ts';
 import { DEPTH_UI, measurer } from './text.ts';
 import { paginate, wrapWords } from './wrap.ts';
 
@@ -16,22 +16,27 @@ interface Line {
 const CHAR_DELAY = 28;
 
 export function openScroll(scene: Phaser.Scene, refs: string[]): Promise<void> {
+  const SCROLL = scrollLayout(scene.scale.width, scene.scale.height);
   const measure = measurer(FONT_SCRIPTURE, SIZE_SCRIPTURE);
   const lines: Line[] = [];
   for (const ref of refs) {
     for (const verse of Scripture.resolve(ref)) {
-      wrapWords(verse.text, SCROLL_TEXT_WIDTH, measure).forEach((text, i) =>
+      wrapWords(verse.text, SCROLL.textWidth, measure).forEach((text, i) =>
         lines.push({ ref, verseNum: i === 0 ? verse.v : undefined, text }),
       );
     }
   }
   const pages = paginate(lines, SCROLL.linesPerPage);
+  // 본문이 짧으면 두루마리도 짧게, 화면 가운데에 둔다.
+  const rows = Math.max(3, ...pages.map((p) => p.length));
+  SCROLL.height = Math.min(SCROLL.height, SCROLL.padTop + rows * SCROLL.lineHeight + 18);
+  SCROLL.y = Math.floor((scene.scale.height - SCROLL.height) / 2);
 
   const depth = DEPTH_UI + 10;
   const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(depth);
   const dim = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, PAL.ink, 0.55).setOrigin(0);
   const g = scene.add.graphics();
-  drawParchment(g);
+  drawParchment(g, SCROLL);
   const header = scene.add.text(SCROLL.x + SCROLL.padX, SCROLL.y + 7, '', {
     fontFamily: FONT_UI,
     fontSize: `${SIZE_UI}px`,
@@ -149,7 +154,7 @@ export function openScroll(scene: Phaser.Scene, refs: string[]): Promise<void> {
   });
 }
 
-function drawParchment(g: Phaser.GameObjects.Graphics) {
+function drawParchment(g: Phaser.GameObjects.Graphics, SCROLL: ReturnType<typeof scrollLayout>) {
   const { x, y, width: w, height: h } = SCROLL;
   // 두루마리 막대
   g.fillStyle(PAL.wood).fillRect(x - 4, y - 3, w + 8, 5);
@@ -161,5 +166,5 @@ function drawParchment(g: Phaser.GameObjects.Graphics) {
   g.fillStyle(PAL.parchment).fillRect(x + 2, y + 3, w - 4, h - 6);
   g.fillStyle(PAL.parchmentDark);
   for (let i = 0; i < 18; i++) g.fillRect(x + 6 + ((i * 53) % (w - 12)), y + 8 + ((i * 29) % (h - 16)), 1, 1);
-  g.lineStyle(1, PAL.parchmentDark).lineBetween(x + SCROLL.padX, y + 19, x + w - SCROLL.padX, y + 19);
+  g.lineStyle(1, PAL.parchmentDark).lineBetween(x + SCROLL.padX, y + 20, x + w - SCROLL.padX, y + 20);
 }

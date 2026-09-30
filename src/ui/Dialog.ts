@@ -1,14 +1,14 @@
 // 게임 텍스트 말풍선과 선택지. 두루마리와 다른 모양(아래쪽 상자)으로 본문과 구분한다(설계 원칙 2).
 import Phaser from 'phaser';
 import { css, PAL } from '../art/palette.ts';
-import { FONT_UI, GAME_HEIGHT, GAME_WIDTH, SIZE_UI } from './layout.ts';
+import { FONT_UI, SIZE_UI } from './layout.ts';
 import { DEPTH_UI, measurer, waitPress } from './text.ts';
 import { wrapWords } from './wrap.ts';
 
 const BOX = { x: 8, h: 50, pad: 8, lineHeight: 12 };
 
-function boxY() {
-  return GAME_HEIGHT - BOX.h - 6;
+function boxY(scene: Phaser.Scene) {
+  return scene.scale.height - BOX.h - 6;
 }
 
 function drawBox(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number) {
@@ -19,18 +19,19 @@ function drawBox(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number
 /** 말하는 사람 이름과 한 줄 이상의 게임 텍스트. 여러 문장은 차례로 보여준다. */
 export async function say(scene: Phaser.Scene, speaker: string | null, ...messages: string[]) {
   const measure = measurer(FONT_UI, SIZE_UI);
-  const width = GAME_WIDTH - BOX.x * 2;
+  const width = Math.min(scene.scale.width, 400) - BOX.x * 2;
+  const bx = Math.floor((scene.scale.width - width) / 2);
   const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH_UI + 5);
   const g = scene.add.graphics();
-  drawBox(g, BOX.x, boxY(), width, BOX.h);
+  drawBox(g, bx, boxY(scene), width, BOX.h);
   root.add(g);
   if (speaker) {
     const nameW = measure(speaker) + 10;
     const ng = scene.add.graphics();
-    ng.fillStyle(PAL.teal).fillRoundedRect(BOX.x + 6, boxY() - 8, nameW, 13, 3);
-    root.add([ng, scene.add.text(BOX.x + 11, boxY() - 7, speaker, { fontFamily: FONT_UI, fontSize: `${SIZE_UI}px`, color: css(PAL.white) })]);
+    ng.fillStyle(PAL.teal).fillRoundedRect(bx + 6, boxY(scene) - 8, nameW, 13, 3);
+    root.add([ng, scene.add.text(bx + 11, boxY(scene) - 7, speaker, { fontFamily: FONT_UI, fontSize: `${SIZE_UI}px`, color: css(PAL.white) })]);
   }
-  const body = scene.add.text(BOX.x + BOX.pad, boxY() + BOX.pad, '', {
+  const body = scene.add.text(bx + BOX.pad, boxY(scene) + BOX.pad, '', {
     fontFamily: FONT_UI,
     fontSize: `${SIZE_UI}px`,
     color: css(PAL.white),
@@ -53,8 +54,8 @@ export function choose(scene: Phaser.Scene, prompt: string | null, options: stri
   const rowH = 15;
   const w = Math.max(...options.map((o) => measure(o)), prompt ? measure(prompt) : 0) + 34;
   const h = options.length * rowH + (prompt ? rowH + 4 : 0) + 10;
-  const x = Math.round((GAME_WIDTH - w) / 2);
-  const y = Math.round((GAME_HEIGHT - h) / 2);
+  const x = Math.round((scene.scale.width - w) / 2);
+  const y = Math.round((scene.scale.height - h) / 2);
   const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH_UI + 6);
   const g = scene.add.graphics();
   drawBox(g, x, y, w, h);
@@ -105,9 +106,10 @@ export function choose(scene: Phaser.Scene, prompt: string | null, options: stri
 /** 화면 가운데 짧은 제목 카드 */
 export async function titleCard(scene: Phaser.Scene, title: string, sub: string) {
   const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH_UI + 20);
-  root.add(scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, PAL.ink).setOrigin(0));
-  root.add(scene.add.text(GAME_WIDTH / 2, 78, title, { fontFamily: 'Galmuri11', fontSize: '12px', color: css(PAL.gold) }).setOrigin(0.5));
-  root.add(scene.add.text(GAME_WIDTH / 2, 98, sub, { fontFamily: FONT_UI, fontSize: `${SIZE_UI}px`, color: css(PAL.mist) }).setOrigin(0.5));
+  const { width: W, height: H } = scene.scale;
+  root.add(scene.add.rectangle(0, 0, W, H, PAL.ink).setOrigin(0));
+  root.add(scene.add.text(W / 2, H / 2 - 12, title, { fontFamily: 'Galmuri11', fontSize: '12px', color: css(PAL.gold) }).setOrigin(0.5));
+  root.add(scene.add.text(W / 2, H / 2 + 8, sub, { fontFamily: FONT_UI, fontSize: `${SIZE_UI}px`, color: css(PAL.mist) }).setOrigin(0.5));
   root.setAlpha(0);
   await new Promise<void>((r) => scene.tweens.add({ targets: root, alpha: 1, duration: 400, onComplete: () => r() }));
   await new Promise<void>((r) => scene.time.delayedCall(1400, () => r()));
