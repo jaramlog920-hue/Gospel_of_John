@@ -26,19 +26,131 @@
         touch-action: none;
         -webkit-user-select: none;
         user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
       }
       #game {
-        width: 100%;
-        height: 100%;
+        flex: 1;
+        min-height: 0;
       }
       canvas {
         image-rendering: pixelated;
         image-rendering: crisp-edges;
       }
+      #pad {
+        display: none;
+      }
+
+      /* 세로 화면: 게임은 위쪽에 가로 폭을 꽉 채우고, 아래에 패드를 둔다. */
+      @media (orientation: portrait) {
+        #game {
+          flex: none;
+          width: 100%;
+          aspect-ratio: 16 / 9;
+          margin-top: env(safe-area-inset-top);
+          border-bottom: 4px solid #3e3a63;
+        }
+        #pad {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          position: relative;
+          padding: 0 max(28px, 8vw) env(safe-area-inset-bottom);
+          background: linear-gradient(#2b2440, #1a1423);
+          font-family: 'Galmuri9', sans-serif;
+        }
+      }
+      .pad-dpad {
+        position: relative;
+        width: min(42vw, 180px);
+        aspect-ratio: 1;
+        touch-action: none;
+      }
+      .pad-dpad::before,
+      .pad-dpad::after {
+        content: '';
+        position: absolute;
+        background: #3e3a63;
+        border-radius: 6px;
+        box-shadow: 0 4px 0 #1a1423;
+      }
+      .pad-dpad::before {
+        left: 33%;
+        width: 34%;
+        top: 0;
+        height: 100%;
+      }
+      .pad-dpad::after {
+        top: 33%;
+        height: 34%;
+        left: 0;
+        width: 100%;
+      }
+      .pad-arrow {
+        position: absolute;
+        z-index: 1;
+        width: 0;
+        height: 0;
+        border: 9px solid transparent;
+        opacity: 0.55;
+      }
+      .pad-arrow.up { left: 50%; top: 9%; margin-left: -9px; border-bottom-color: #f4efe6; border-top: 0; }
+      .pad-arrow.down { left: 50%; bottom: 9%; margin-left: -9px; border-top-color: #f4efe6; border-bottom: 0; }
+      .pad-arrow.left { top: 50%; left: 9%; margin-top: -9px; border-right-color: #f4efe6; border-left: 0; }
+      .pad-arrow.right { top: 50%; right: 9%; margin-top: -9px; border-left-color: #f4efe6; border-right: 0; }
+      .pad-dpad[data-dirs~='ArrowUp'] .up { opacity: 1; border-bottom-color: #f2c14e; }
+      .pad-dpad[data-dirs~='ArrowDown'] .down { opacity: 1; border-top-color: #f2c14e; }
+      .pad-dpad[data-dirs~='ArrowLeft'] .left { opacity: 1; border-right-color: #f2c14e; }
+      .pad-dpad[data-dirs~='ArrowRight'] .right { opacity: 1; border-left-color: #f2c14e; }
+      .pad-center {
+        position: absolute;
+        z-index: 1;
+        left: 42%;
+        top: 42%;
+        width: 16%;
+        height: 16%;
+        border-radius: 50%;
+        background: #2b2440;
+      }
+      .pad-a {
+        width: min(24vw, 96px);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        border: 0;
+        background: #c8553d;
+        color: #f4efe6;
+        font-family: 'Galmuri11', sans-serif;
+        font-size: 16px;
+        box-shadow: 0 5px 0 #8e3b5a;
+        touch-action: none;
+        cursor: pointer;
+      }
+      .pad-a.down {
+        transform: translateY(4px);
+        box-shadow: 0 1px 0 #8e3b5a;
+        background: #e08d3c;
+      }
+      .pad-hint {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: calc(14px + env(safe-area-inset-bottom));
+        text-align: center;
+        color: #8b8397;
+        font-size: 12px;
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
     <div id="game"></div>
+    <div id="pad"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
