@@ -124,10 +124,12 @@ Gospel_of_John/
 │  ├─ ui/ScrollFrame.ts    # 말씀 두루마리 (본문 렌더링은 여기서만)
 │  └─ data/Scripture.ts    # 본문 로더 (읽기 전용, Object.freeze)
 ├─ assets/ (sprites, tiles, audio, fonts)
+├─ scripts/verify-scripture.ts  # 본문 해시·절 수 검증 (빌드 전에 실행)
+├─ vercel.json
 └─ tests/scripture.test.ts
 ```
 
-- **엔진**: Phaser 3 + TypeScript + Vite. 웹에서 바로 실행되고, 나중에 Electron이나 Capacitor로 앱 패키징할 수 있다.
+- **엔진**: Phaser 3 + TypeScript + Vite. 정적 사이트로 빌드되므로 **Vercel**에 그대로 배포할 수 있다(8장 참고). 나중에 Electron이나 Capacitor로 앱 패키징도 가능하다.
 - **맵**: Tiled(.tmj)로 만들어 불러온다.
 - **본문 보호 장치**
   1. `Scripture.get(ch, v)`로만 본문을 꺼낼 수 있다. 반환값은 수정할 수 없는 문자열이다.
@@ -150,13 +152,60 @@ Gospel_of_John/
 | **M2 수직 슬라이스** (4–6주) | 1–6장, 월드맵, 도감, 엠블럼 3개, 사운드 | 완성품 품질의 30분 분량 |
 | **M3 알파** | 7–13장, 실로암·나사로 스테이지 | 전체 표적 7개 완성 |
 | **M4 베타** | 14–21장, 말씀 타자 모드, 접근성, 어린이 모드 | 전 장 플레이 가능 |
-| **출시** | 웹 공개 → 앱/Steam | 교회학교·수련회용 배포 고려 |
+| **출시** | Vercel 웹 공개 → 앱/Steam | 교회학교·수련회용 배포 고려 |
 
 프로토타입을 오병이어로 정한 이유는 세 가지다. 요한복음을 모르는 사람에게도 직관적이고, 배급 러시는 누구나 바로 재미를 느끼며, "아이의 도시락"이라는 주인공 시점과 가장 잘 맞는다.
 
 ---
 
-## 8. 확인할 사항
+## 8. 배포 (Vercel)
+
+게임은 서버 없이 도는 **정적 웹 게임**(HTML·JS·이미지·오디오)이라 Vercel에 잘 맞는다.
+
+**배포 흐름**
+```
+GitHub 푸시 ─▶ Vercel 자동 빌드 ─▶ ① 본문 검증 ─▶ ② vite build ─▶ 배포
+                                  (실패하면 배포 중단)
+```
+- GitHub 저장소 `jaramlog920-hue/Gospel_of_John`을 Vercel 프로젝트에 연결한다. Framework Preset은 **Vite**를 고른다.
+- `main` 브랜치에 푸시하면 정식 배포(Production)가 된다. 그 밖의 브랜치와 PR은 **미리보기 주소**(Preview)로 따로 배포된다. 스테이지를 만들 때마다 링크를 보내서 휴대폰으로 바로 해볼 수 있다.
+- **본문 검증을 배포 관문으로 둔다**: `package.json`의 build 스크립트를 아래처럼 잡으면, 본문이 한 글자라도 바뀐 경우 Vercel 빌드가 실패해서 **틀린 본문은 절대 배포되지 않는다.**
+  ```json
+  "scripts": {
+    "verify:scripture": "tsx scripts/verify-scripture.ts",
+    "build": "npm run verify:scripture && vite build"
+  }
+  ```
+
+**vercel.json (초안)**
+```json
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ]
+}
+```
+- Vite가 파일 이름에 해시를 붙이므로 에셋은 오래 캐시해도 안전하다. 재방문하면 바로 로딩된다.
+- 폰트(갈무리)는 외부 CDN을 쓰지 않고 `assets/fonts`에 직접 넣는다. 오프라인이나 느린 망에서도 글자가 깨지지 않는다.
+
+**웹 게임 체크리스트**
+- 도트가 뭉개지지 않게 Phaser `pixelArt: true`와 CSS `image-rendering: pixelated`를 켠다.
+- 모바일에서는 가상 패드와 터치 조작을 지원하고, 가로 화면 고정을 안내한다.
+- 브라우저 정책 때문에 오디오는 첫 터치 뒤에 켜진다. 타이틀 화면에 "터치하여 시작"을 둔다.
+- 초기 로딩을 가볍게 하려고 장별 에셋은 해당 씬에서 불러온다(지연 로딩). 첫 화면 목표는 3MB 이하다.
+- PWA(홈 화면에 추가)를 적용하면 교회 수련회처럼 와이파이가 약한 곳에서도 플레이할 수 있다.
+- 공유용 OG 이미지(도트 타이틀 화면)를 만들어 카카오톡으로 링크를 보낼 때 미리보기가 뜨게 한다.
+
+**요금제 주의**: Vercel 무료(Hobby) 요금제는 **비상업적 개인 용도**로 제한된다. 유료 판매, 광고, 기관 명의로 운영할 계획이면 Pro 요금제를 검토한다.
+
+---
+
+## 9. 확인할 사항
 
 - **저작권**: 개역한글판(1961)은 저작권 보호기간이 끝나 자유롭게 쓸 수 있는 것으로 알려져 있다. 다만 **출시 전 대한성서공회에 확인하기를 권한다**. 개역개정판은 저작권이 있으므로 섞어 쓰지 않는다.
 - **본문 원본 출처**: 신뢰할 수 있는 한 가지 판본을 정해 `john_krv.json`을 만들고, 출처와 판 정보를 `data/SOURCE.md`에 적는다.
