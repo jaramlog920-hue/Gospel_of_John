@@ -1,0 +1,27 @@
+{
+  "name": "gospel-of-john",
+  "private": true,
+  "version": "0.1.0",
+  "description": "일곱 표적: 와서 보라 — 요한복음 도트 게임",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "verify:scripture": "tsx scripts/verify-scripture.ts",
+    "import:scripture": "tsx scripts/import-scripture.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "npm run verify:scripture && tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "galmuri": "2.40.3",
+    "tsx": "^4.23.0",
+    "typescript": "^5.9.0",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
+  }
+}
