@@ -5,15 +5,17 @@ import Phaser from 'phaser';
 import { PAL, rgb } from '../art/palette.ts';
 import { LEVELS, parseLevel, toggleMirror, traceBeam, type Cell } from '../minigames/lightBeam.ts';
 import { Save } from '../state/save.ts';
+import { CH1_REFS } from '../story/flow.ts';
+import { goNext } from '../story/progress.ts';
 import { Controls } from '../ui/Controls.ts';
 import { say, titleCard } from '../ui/Dialog.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
 import { Tag } from '../ui/text.ts';
 
 const TILE = 16;
-const INTRO_REF = 'john:1:1-3';
-/** 단계를 풀 때마다 이어지는 본문. INTRO_REF와 합치면 1:1–18 전체 */
-const LEVEL_REFS = ['john:1:4-5', 'john:1:6-9', 'john:1:10-18'];
+/** 시작 두루마리와, 단계를 풀 때마다 이어지는 본문(합치면 1:1–18) */
+const INTRO_REF = CH1_REFS.intro;
+const LEVEL_REFS = CH1_REFS.levels;
 
 interface Ch1Data {
   level?: number;
@@ -192,7 +194,7 @@ export class Ch1LightScene extends Phaser.Scene {
 
     if (last) {
       this.cameras.main.fadeOut(600, ...rgb(PAL.ink));
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Campfire', { ch: 1, next: 'Ch6', flags: {} }));
+      this.cameras.main.once('camerafadeoutcomplete', () => goNext(this));
       return;
     }
     this.level++;

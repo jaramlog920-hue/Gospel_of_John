@@ -6,6 +6,7 @@ import { Ch6FeedingScene } from './scenes/Ch6FeedingScene.ts';
 import { DiaryScene } from './scenes/DiaryScene.ts';
 import { EndScene } from './scenes/EndScene.ts';
 import { openPauseMenu, PauseScene } from './scenes/PauseScene.ts';
+import { StoryScene } from './scenes/StoryScene.ts';
 import { TitleScene } from './scenes/TitleScene.ts';
 import { computeView } from './ui/layout.ts';
 import { mountVirtualPad } from './ui/VirtualPad.ts';
@@ -31,7 +32,7 @@ const game = new Phaser.Game({
   backgroundColor: '#3d3656',
   scale: { mode: Phaser.Scale.NONE, zoom: view.zoom },
   input: { activePointers: 2 },
-  scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, CampfireScene, DiaryScene, EndScene, PauseScene],
+  scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, StoryScene, CampfireScene, DiaryScene, EndScene, PauseScene],
 });
 
 /** 화면 크기가 바뀌면 다시 그릴 때 넘길 이어하기 정보를 씬이 줄 수 있다. */

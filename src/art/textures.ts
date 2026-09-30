@@ -310,6 +310,8 @@ const VEIL_SET: [number, number][] = [
 
 export function generateTextures(scene: Phaser.Scene) {
   if (scene.textures.exists('player')) return;
+  generateProps(scene);
+  generateGrounds(scene);
 
   // 주인공·아이들: 맨머리, 허리띠를 맨 짧은 튜닉
   makePerson(scene, 'player', { robe: PAL.aqua, robeShade: PAL.teal, sash: PAL.mud, hair: PAL.mud, hairShade: PAL.ink, clavi: PAL.teal, kid: true });
@@ -555,4 +557,178 @@ export function generateTextures(scene: Phaser.Scene) {
 export function grassTile(x: number, y: number): string {
   const h = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
   return h < 0.015 ? 'grass-flower' : h < 0.03 ? 'grass-flower2' : h < 0.11 ? 'grass-tuft' : 'grass';
+}
+
+// ───────── 이야기 장면의 소품(1세기 유대·갈릴리 고증) ─────────
+export function generateProps(scene: Phaser.Scene) {
+  if (scene.textures.exists('house')) return;
+
+  // 집: 갈릴리는 검은 현무암, 유대(예루살렘·베다니)는 석회암을 쌓은 벽. 나무 들보를 얹은 평지붕.
+  for (const [key, base, a, b] of [
+    ['house', PAL.shadow, PAL.mauve, PAL.stone],
+    ['house-lime', PAL.steel, PAL.mist, PAL.white],
+  ] as const) {
+    const p = new Pix(34, 30);
+    p.rect(2, 6, 30, 22, base);
+    for (let y = 7; y < 28; y += 3) for (let x = 2 + ((y / 3) % 2) * 3; x < 32; x += 6) p.rect(x, y, 5, 2, (x + y) % 4 ? a : b);
+    p.rect(0, 3, 34, 3, PAL.khaki); // 흙을 다진 지붕
+    p.rect(0, 5, 34, 1, PAL.taupe);
+    for (let x = 2; x < 34; x += 5) p.set(x, 6, PAL.rust); // 들보 끝
+    p.rect(14, 16, 6, 12, PAL.ink); // 문
+    p.rect(14, 16, 6, 1, PAL.rust);
+    p.rect(24, 12, 4, 4, PAL.ink); // 창
+    p.outline();
+    pixTexture(scene, key, p);
+  }
+  // 성전 주랑의 석회암 기둥
+  mapTexture(
+    scene,
+    'pillar',
+    ['CCCCCCCCCC', '.cccccccc.', '..mCCCCm..', ...Array(26).fill('..mCCCCs..'), '..mCCCCs..', '.cccccccc.', 'CCCCCCCCCC'],
+    { C: PAL.cream, c: PAL.khaki, m: PAL.white, s: PAL.khaki },
+  );
+  // 우물: 돌을 둥글게 쌓은 입구
+  mapTexture(scene, 'well', ['....ssssssss....', '..ssMMMMMMMMss..', '.sMiiiiiiiiiiMs.', 'sMMiiiiiiiiiiMMs', 'SSSSSSSSSSSSSSSS', 'SsSSsSSsSSsSSsSS', 'SSSSSSSSSSSSSSSS', '.SSSSSSSSSSSSSS.'], {
+    s: PAL.stone,
+    M: PAL.steel,
+    i: PAL.ink,
+    S: PAL.stone,
+  });
+  // 물 항아리(돌항아리)
+  mapTexture(scene, 'jar', ['.MMMM.', 'MssssM', '.SSSS.', 'SSSSSS', 'SSSSSs', 'SSSSSs', 'SSSSss', '.SSss.'], { M: PAL.steel, s: PAL.ink, S: PAL.mist });
+  // 갈대
+  mapTexture(scene, 'reeds', ['.k...k..', '.g..kg..', 'kg..gg.k', 'gg.gg..g', 'g.gg.gg.', 'gggg.gg.', '.gg.gg..', '.g..g...'], { g: PAL.olive, k: PAL.khaki });
+  // 종려나무(대추야자)
+  mapTexture(
+    scene,
+    'palm',
+    [
+      '....l......l.....',
+      '..lLLl...lLLl....',
+      '.lL..LlllL..Ll...',
+      'lL....LLLL...Ll..',
+      'L...lLLLLLLl..L..',
+      '...lL..bb..Ll....',
+      '..lL...bB...Ll...',
+      '..L....bB....L...',
+      '.......bB........',
+      '.......bB........',
+      '........bB.......',
+      '........bB.......',
+      '........bB.......',
+      '.......bbBB......',
+    ],
+    { l: PAL.leaf, L: PAL.forest, b: PAL.taupe, B: PAL.rust },
+  );
+  // 양
+  mapTexture(scene, 'sheep', ['.WWWWW...', 'WWWWWWWhh', 'WWWWWWWhe', 'WWWWWWWh.', '.l.l.l.l.'], { W: PAL.white, h: PAL.mud, e: PAL.ink, l: PAL.mud });
+  // 돌담 한 칸
+  mapTexture(scene, 'stonewall', ['.SSs.SSSs.SSs...', 'SSSSsSSSSsSSSSs.', 'sSSSSsSSSSsSSSSs', 'SSsSSSSsSSSSsSSs', 'ssssssssssssssss'], { S: PAL.stone, s: PAL.shadow });
+  // 바위 무덤: 바위를 파낸 입구와 둥근 막음돌
+  mapTexture(
+    scene,
+    'tomb',
+    [
+      '.......KKKKKKKKKKK.........',
+      '....KKKkkkkkkkkkkKKK.......',
+      '..KKkkkkkkkkkkkkkkkkKK.....',
+      '.KkkkkkkkkkkkkkkkkkkkkK....',
+      'KkkkkkiiiiiiikkkkkkkkkkK...',
+      'Kkkkkiiiiiiiiikkkkkkkkkk...',
+      'KkkkkiiiiiiiiikkkkkkkkkkK..',
+      'KkkkkiiiiiiiiikkkkkkkkkkK..',
+      'KkkkkiiiiiiiiikkkkkkkkkkkK.',
+      'KkkkkiiiiiiiiikkkkkkkkkkkK.',
+      'KKKKKKKKKKKKKKKKKKKKKKKKKKK',
+    ],
+    { K: PAL.taupe, k: PAL.khaki, i: PAL.ink },
+  );
+  mapTexture(scene, 'stone-round', ['...SSSS...', '.SSMMMSSs.', 'SSMSSSSSss', 'SMSSSSSSss', 'SSSSSSSSss', 'SSSSSSSsss', '.SSSSSsss.', '...ssss...'], {
+    S: PAL.steel,
+    M: PAL.mist,
+    s: PAL.stone,
+  });
+  // 멀리 보이는 언덕 위 형틀 세 개(작고 어둡게, 원칙 6)
+  mapTexture(scene, 'crosses', ['....i..........i..........i....', '..iiiii......iiiii......iiiii..', '....i..........i..........i....', '....i..........i..........i....', '....i..........i..........i....', '....i..........i..........i....', '....i..........i..........i....'], { i: PAL.ink }, false);
+  // 기대어 앉는 낮은 식탁과 방석
+  mapTexture(scene, 'table', ['WWWWWWWWWWWWWWWWWWWWWWWW', 'ttttttttttttttttttttttttt'.slice(0, 24), '.r....................r.', '.r....................r.'], { W: PAL.khaki, t: PAL.taupe, r: PAL.rust });
+  mapTexture(scene, 'cushion', ['.pppppppp.', 'pPPPPPPPPp', 'pPPPPPPPPp', '.pppppppp.'], { p: PAL.brick, P: PAL.clay });
+  // 갈릴리 고깃배(나무)
+  mapTexture(
+    scene,
+    'boat',
+    ['...............m...............', '...............m...............', 'W..............m..............W', 'WW.............m.............WW', 'WtWWWWWWWWWWWWWWWWWWWWWWWWWWWtW', '.WtttttttttttttttttttttttttttW.', '..WWWWWWWWWWWWWWWWWWWWWWWWWWW..', '....bbbbbbbbbbbbbbbbbbbbbbb....'],
+    { W: PAL.taupe, t: PAL.khaki, b: PAL.rust, m: PAL.mud },
+  );
+  // 포도나무 시렁
+  mapTexture(scene, 'vine', ['bbbbbbbbbbbbbbbb', '.gGg..gGg..gGg..', 'gGGgggGGgggGGgg.', '.gpg.gGpg..gpg..', '..pp..gpp...pp..', '..b.....b.....b.', '..b.....b.....b.', '..b.....b.....b.'], {
+    b: PAL.taupe,
+    g: PAL.forest,
+    G: PAL.leaf,
+    p: PAL.purple,
+  });
+  // 두루마리 표시(다음에 읽을 곳)
+  mapTexture(scene, 'scroll-mark', ['.rr....rr.', 'rCCCCCCCCr', '.CccccccC.', '.CCCCCCCC.', '.CccccC C.'.replace(' ', 'C'), '.CCCCCCCC.', 'rCCCCCCCCr', '.rr....rr.'], {
+    r: PAL.rust,
+    C: PAL.cream,
+    c: PAL.peach,
+  });
+}
+
+/** 이야기 장면의 바닥 타일 */
+export function generateGrounds(scene: Phaser.Scene) {
+  if (scene.textures.exists('paving')) return;
+  const tile = (key: string, draw: (p: Pix) => void) => {
+    const p = new Pix(16, 16);
+    draw(p);
+    pixTexture(scene, key, p);
+  };
+  // 석회암 포석(성전·관저): 옅은 회백색
+  tile('paving', (p) => {
+    p.rect(0, 0, 16, 16, PAL.mist);
+    p.rect(0, 7, 16, 1, PAL.steel);
+    p.rect(0, 15, 16, 1, PAL.steel);
+    p.rect(9, 0, 1, 7, PAL.steel);
+    p.rect(3, 8, 1, 7, PAL.steel);
+    p.set(5, 3, PAL.white);
+    p.set(12, 11, PAL.white);
+  });
+  // 현무암 포석(갈릴리 회당·골목)
+  tile('basalt', (p) => {
+    p.rect(0, 0, 16, 16, PAL.mauve);
+    p.rect(0, 7, 16, 1, PAL.shadow);
+    p.rect(0, 15, 16, 1, PAL.shadow);
+    p.rect(7, 0, 1, 7, PAL.shadow);
+    p.rect(12, 8, 1, 7, PAL.shadow);
+    p.set(3, 3, PAL.stone);
+  });
+  // 다진 흙길: 마른 회갈색
+  tile('dirt', (p) => {
+    p.rect(0, 0, 16, 16, PAL.khaki);
+    for (const [x, y] of [
+      [3, 4],
+      [11, 9],
+      [6, 13],
+    ])
+      p.set(x, y, PAL.taupe);
+  });
+  // 흙을 바른 실내 바닥
+  tile('floor', (p) => {
+    p.rect(0, 0, 16, 16, PAL.taupe);
+    p.set(4, 5, PAL.khaki);
+    p.set(12, 11, PAL.mauve);
+  });
+  // 나무 배 갑판
+  tile('deck', (p) => {
+    p.rect(0, 0, 16, 16, PAL.taupe);
+    for (const y of [0, 5, 10, 15]) p.rect(0, y, 16, 1, PAL.bark);
+    p.set(7, 2, PAL.mud);
+    p.set(12, 12, PAL.mud);
+  });
+  // 광야: 마른 흙과 드문드문 마른 풀
+  tile('wild', (p) => {
+    p.rect(0, 0, 16, 16, PAL.khaki);
+    p.map(10, 10, ['o.o', '.o.'], { o: PAL.olive });
+    p.set(3, 4, PAL.honey);
+  });
 }

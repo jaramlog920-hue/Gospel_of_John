@@ -5,6 +5,8 @@ import Phaser from 'phaser';
 import { PAL, rgb } from '../art/palette.ts';
 import { faceAndWalk, faceTo, grassTile } from '../art/textures.ts';
 import { Save } from '../state/save.ts';
+import { CH6_REFS } from '../story/flow.ts';
+import { goNext } from '../story/progress.ts';
 import { Controls } from '../ui/Controls.ts';
 import { choose, say, titleCard } from '../ui/Dialog.ts';
 import { menuButtonInset } from '../ui/layout.ts';
@@ -23,13 +25,7 @@ const CRUMBS_PER_BASKET = 5;
 const BASKETS = 12;
 
 /** 장면별 본문. 합치면 6:1–15 전체 */
-const REF = {
-  intro: 'john:6:1-4',
-  lunch: 'john:6:5-9',
-  sit: 'john:6:10-11',
-  gather: 'john:6:12',
-  end: 'john:6:13-15',
-};
+const REF = CH6_REFS;
 
 type Phase = 'walk' | 'rush' | 'gather' | 'done';
 type Food = 'bread' | 'fish';
@@ -611,10 +607,9 @@ export class Ch6FeedingScene extends Phaser.Scene {
     await this.controls.modal(() => openScroll(this, [REF.end]));
     Save.addVerses([REF.end]);
     Save.setFlag('sharedFigs', this.sharedFigs);
+    Save.setFlag('keptFigs', !this.sharedFigs);
     this.cameras.main.fadeOut(900, ...rgb(PAL.ink));
-    this.cameras.main.once('camerafadeoutcomplete', () =>
-      this.scene.start('Campfire', { ch: 6, next: 'End', flags: { sharedFigs: this.sharedFigs, keptFigs: !this.sharedFigs } }),
-    );
+    this.cameras.main.once('camerafadeoutcomplete', () => goNext(this));
   }
 
   // ───────── 매 프레임 ─────────

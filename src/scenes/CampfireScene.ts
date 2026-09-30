@@ -3,14 +3,13 @@
 import Phaser from 'phaser';
 import { PAL, rgb } from '../art/palette.ts';
 import { Save } from '../state/save.ts';
+import { goNext } from '../story/progress.ts';
 import { EMOTIONS } from '../state/types.ts';
 import { showDiaryPage } from '../ui/DiaryPage.ts';
 import { choose, say } from '../ui/Dialog.ts';
 
 interface CampfireData {
   ch: number;
-  next: string;
-  flags: Record<string, boolean>;
 }
 
 export class CampfireScene extends Phaser.Scene {
@@ -19,7 +18,9 @@ export class CampfireScene extends Phaser.Scene {
   }
 
   async create(data: CampfireData) {
-    const { ch = 6, next = 'End', flags = {} } = data ?? {};
+    const ch = data?.ch ?? 6;
+    // 일기에 덧붙는 문장은 지금까지의 선택(무화과, 18장의 밤 등)에 따라 달라진다.
+    const flags = { ...Save.data.flags };
     const { width: W, height: H } = this.scale;
     const shore = Math.floor(H * 0.47);
     const fireY = Math.floor(H * 0.7);
@@ -43,6 +44,6 @@ export class CampfireScene extends Phaser.Scene {
     Save.recordDiary(rec);
     await showDiaryPage(this, rec, { typing: true, closeLabel: '다음 ▶' });
     this.cameras.main.fadeOut(600, ...rgb(PAL.ink));
-    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start(next));
+    this.cameras.main.once('camerafadeoutcomplete', () => goNext(this));
   }
 }

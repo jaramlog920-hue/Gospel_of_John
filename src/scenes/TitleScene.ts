@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { PAL } from '../art/palette.ts';
 import { Scripture } from '../data/Scripture.ts';
 import { Save } from '../state/save.ts';
+import { FLOW } from '../story/flow.ts';
+import { startStep } from '../story/progress.ts';
 import { drawPanel } from '../ui/panel.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
 import { bt, measurer, Tag, waitPress } from '../ui/text.ts';
@@ -83,14 +85,14 @@ export class TitleScene extends Phaser.Scene {
     while (scrollOpen);
     prompt.destroy();
 
-    const hasSave = Save.load(1) !== null && Save.data.chaptersDone.length > 0;
+    const hasSave = Save.load(1) !== null && (Save.data.step > 0 || Save.data.chaptersDone.length > 0);
     const options = hasSave ? ['이어하기', '처음부터', '일기장'] : ['시작하기'];
     const pick = options[await this.menu(options, cy + 58)];
     if (pick === '일기장') return this.scene.start('Diary');
-    if (pick === '이어하기') return this.scene.start(Save.data.chaptersDone.includes(1) ? 'Ch6' : 'Ch1');
+    if (pick === '이어하기') return startStep(this, Math.min(Save.data.step, FLOW.length - 1));
     Save.startNew(1);
     this.cameras.main.fadeOut(400, 46, 34, 47);
-    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Ch1'));
+    this.cameras.main.once('camerafadeoutcomplete', () => startStep(this, 0));
   }
 
   /** 세로로 쌓인 큰 버튼 메뉴. 방향키·확인 버튼·터치 모두 된다. */

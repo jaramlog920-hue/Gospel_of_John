@@ -16,7 +16,8 @@ interface Line {
 
 const CHAR_DELAY = 28;
 
-export function openScroll(scene: Phaser.Scene, refs: string[]): Promise<void> {
+/** noSkip: 수난 장면처럼 글자가 다 나오기 전에는 넘기지 않는다(설계 원칙 6). */
+export function openScroll(scene: Phaser.Scene, refs: string[], opts: { noSkip?: boolean } = {}): Promise<void> {
   const SCROLL = scrollLayout(scene.scale.width, scene.scale.height);
   const measure = measurer('body');
   const lines: Line[] = [];
@@ -104,7 +105,7 @@ export function openScroll(scene: Phaser.Scene, refs: string[]): Promise<void> {
 
     const advance = () => {
       if (finishTyping) {
-        finishTyping();
+        if (!opts.noSkip) finishTyping();
         return;
       }
       page++;
