@@ -9,6 +9,7 @@ import { STORIES, type Story } from '../story/stories.ts';
 import { Controls } from '../ui/Controls.ts';
 import { choose, say, titleCard } from '../ui/Dialog.ts';
 import { menuButtonInset } from '../ui/layout.ts';
+import { announceNewSigns } from '../ui/SignsMenu.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
 import { DEPTH_UI, measurer, Tag } from '../ui/text.ts';
 import { wrapWords } from '../ui/wrap.ts';
@@ -33,6 +34,8 @@ export class StoryScene extends Phaser.Scene {
   private stage!: Stage;
   private hint!: Tag;
   private progress!: Tag;
+  /** 방금 처음 본 표적 수(알림이 보이도록 장면 전환을 늦춘다) */
+  private announced = 0;
 
   constructor() {
     super('Story');
@@ -159,6 +162,7 @@ export class StoryScene extends Phaser.Scene {
       if (beat.game?.when === 'after') await this.runGame(beat.game.key);
     });
     Save.addVerses([beat.ref]);
+    this.announced = announceNewSigns(this);
     this.next = i + 1;
     this.afterBeat(i);
     this.refreshMarks();
@@ -194,7 +198,7 @@ export class StoryScene extends Phaser.Scene {
     const ch = this.story.ch;
     const nextStory = Object.values(STORIES).find((s) => s.ch === ch && s !== this.story);
     if (!Save.data.chaptersDone.includes(ch) && !nextStory) Save.data.chaptersDone.push(ch);
-    this.time.delayedCall(500, () => {
+    this.time.delayedCall(this.announced ? this.announced * 2600 : 500, () => {
       this.cameras.main.fadeOut(700, ...rgb(PAL.ink));
       this.cameras.main.once('camerafadeoutcomplete', () => goNext(this));
     });
