@@ -57,8 +57,8 @@ describe('폰트', () => {
   it('게임 코드와 데이터의 모든 글자가 두 폰트에 들어 있다', () => {
     const chars = new Set<string>();
     for (const f of listFiles('src', ['.ts', '.json'])) for (const c of readFileSync(f, 'utf8')) if (c > '~') chars.add(c);
-    // 화면에 쓰지 않는 기호(주석의 화살표 등)는 제외
-    for (const c of '→–—·✓⚠️') chars.delete(c);
+    // 주석에만 쓰는 기호는 제외한다. 화면에 쓰는 기호(✓ 등)를 여기에 넣지 않는다.
+    for (const c of '–—⚠️') chars.delete(c);
     for (const [name, widths] of fonts) {
       const missing = [...chars].filter((c) => !widths.has(c.codePointAt(0)!));
       expect(missing, name).toEqual([]);

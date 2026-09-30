@@ -34,3 +34,15 @@ describe('요한복음 전체 수록', () => {
       for (const b of st.beats) if (b.choice) expect(b.choice.flags).toHaveLength(b.choice.options.length);
   });
 });
+
+describe('일곱 표적', () => {
+  it('일곱 개이고, 본문 참조가 유효하며, 그 장이 게임 흐름에 들어 있다', async () => {
+    const { SIGNS } = await import('../src/story/signs.ts');
+    expect(SIGNS).toHaveLength(7);
+    const chapters = new Set(FLOW.flatMap(stepRefs).map((r) => Scripture.resolve(r)[0].ch));
+    for (const s of SIGNS) {
+      expect(Scripture.resolve(s.ref)[0].ch).toBe(s.ch);
+      expect(chapters.has(s.ch)).toBe(true);
+    }
+  });
+});

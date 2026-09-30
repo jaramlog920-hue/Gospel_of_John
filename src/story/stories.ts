@@ -27,6 +27,8 @@ export type Setting =
 
 export interface Beat {
   ref: string;
+  /** 두루마리 앞(before)이나 뒤(after)에 하는 미니게임(장면 키) */
+  game?: { key: string; when: 'before' | 'after' };
   /** 두루마리를 열기 전 주인공의 독백 */
   note?: string;
   /** 두루마리를 열기 전 주인공의 선택(정답·벌점 없음). 고른 번호가 flags[flag]에 들어간다. */
@@ -72,7 +74,11 @@ add({
   sub: '갈릴리 가나, 잔치가 열린 집',
   setting: 'village',
   intro: '마을이 떠들썩하다. 혼인 잔치가 며칠째 이어지고 있다. 문 옆에 커다란 돌항아리들이 서 있다.',
-  beats: [{ ref: 'john:2:1-5' }, { ref: 'john:2:6-10', note: '하인들이 우물과 항아리 사이를 바쁘게 오간다.' }, { ref: 'john:2:11-12' }],
+  beats: [
+    { ref: 'john:2:1-5' },
+    { ref: 'john:2:6-10', note: '하인들이 우물과 항아리 사이를 바쁘게 오간다.', game: { key: 'Jars', when: 'after' } },
+    { ref: 'john:2:11-12' },
+  ],
 });
 add({
   id: '2b',
@@ -81,7 +87,7 @@ add({
   sub: '예루살렘, 유월절 무렵',
   setting: 'temple',
   intro: '유월절이 가까워 예루살렘이 사람으로 가득하다. 성전 뜰에서 소 울음소리와 동전 소리가 뒤섞인다.',
-  beats: [{ ref: 'john:2:13-17' }, { ref: 'john:2:18-22' }, { ref: 'john:2:23-25' }],
+  beats: [{ ref: 'john:2:13-17', game: { key: 'Herd', when: 'after' } }, { ref: 'john:2:18-22' }, { ref: 'john:2:23-25' }],
 });
 
 // ── 3장 ──
@@ -92,7 +98,7 @@ add({
   sub: '예루살렘의 밤',
   setting: 'night',
   intro: '밤이 깊었다. 골목에 등잔 불빛이 새어 나온다. 누군가 조용히 어느 집으로 들어간다.',
-  beats: [{ ref: 'john:3:1-8' }, { ref: 'john:3:9-15' }, { ref: 'john:3:16-21', note: '바람이 골목을 지나간다. 어디서 와서 어디로 가는지 모르겠다.' }],
+  beats: [{ ref: 'john:3:1-8', game: { key: 'Lantern', when: 'before' } }, { ref: 'john:3:9-15' }, { ref: 'john:3:16-21', note: '바람이 골목을 지나간다. 어디서 와서 어디로 가는지 모르겠다.' }],
 });
 add({
   id: '3b',
@@ -115,7 +121,7 @@ add({
     { ref: 'john:4:1-6' },
     { ref: 'john:4:7-15', note: '한낮에 한 여자가 혼자 물을 길으러 왔다.' },
     { ref: 'john:4:16-26' },
-    { ref: 'john:4:27-30', note: '여자가 물동이를 두고 마을 쪽으로 달려간다.' },
+    { ref: 'john:4:27-30', note: '여자가 물동이를 두고 마을 쪽으로 달려간다.', game: { key: 'Chain', when: 'after' } },
     { ref: 'john:4:31-38' },
     { ref: 'john:4:39-42', note: '마을 사람들이 줄지어 우물 쪽으로 온다.' },
   ],
@@ -126,7 +132,7 @@ add({
   title: '왕의 신하',
   sub: '다시 갈릴리 가나',
   setting: 'village',
-  beats: [{ ref: 'john:4:43-45' }, { ref: 'john:4:46-50', note: '먼 길을 온 사람이 애타게 무언가를 구한다.' }, { ref: 'john:4:51-54' }],
+  beats: [{ ref: 'john:4:43-45' }, { ref: 'john:4:46-50', note: '먼 길을 온 사람이 애타게 무언가를 구한다.', game: { key: 'Runner', when: 'after' } }, { ref: 'john:4:51-54' }],
 });
 
 // ── 5장 ──
@@ -137,7 +143,7 @@ add({
   sub: '예루살렘 양문 곁의 못',
   setting: 'pool',
   intro: '행각 다섯 채 아래 아픈 사람들이 누워 있다. 모두 물을 바라보고 있다.',
-  beats: [{ ref: 'john:5:1-9', note: '한 사람은 아주 오래 여기 누워 있었다고 한다.' }, { ref: 'john:5:10-18' }],
+  beats: [{ ref: 'john:5:1-9', note: '한 사람은 아주 오래 여기 누워 있었다고 한다.', game: { key: 'Pool', when: 'before' } }, { ref: 'john:5:10-18' }],
 });
 add({
   id: '5b',
@@ -156,7 +162,7 @@ add({
   sub: '갈릴리 바다, 가버나움으로 가는 배',
   setting: 'lake',
   intro: '날이 저물었다. 바람이 세지고 물결이 높다. 배가 흔들린다.',
-  beats: [{ ref: 'john:6:16-21' }],
+  beats: [{ ref: 'john:6:16-21', game: { key: 'Row', when: 'before' } }],
 });
 add({
   id: '6c',
@@ -211,7 +217,7 @@ add({
   setting: 'temple',
   beats: [
     { ref: 'john:8:1-11', note: '이른 아침, 사람들이 한 여자를 끌고 왔다. 다들 손에 무언가를 쥐고 있다.' },
-    { ref: 'john:8:12-20' },
+    { ref: 'john:8:12-20', game: { key: 'Lamps', when: 'before' } },
     { ref: 'john:8:21-30' },
     { ref: 'john:8:31-38' },
     { ref: 'john:8:39-47' },
@@ -228,7 +234,7 @@ add({
   setting: 'siloam',
   intro: '길가에 앉아 구걸하는 사람이 있다. 날 때부터 앞을 보지 못했다고 한다.',
   beats: [
-    { ref: 'john:9:1-7', note: '그 사람이 더듬거리며 못으로 내려가는 계단을 찾는다.' },
+    { ref: 'john:9:1-7', note: '그 사람이 더듬거리며 못으로 내려가는 계단을 찾는다.', game: { key: 'Blind', when: 'after' } },
     { ref: 'john:9:8-12' },
     { ref: 'john:9:13-17' },
     { ref: 'john:9:18-23' },
@@ -245,7 +251,7 @@ add({
   sub: '돌담을 두른 양 우리',
   setting: 'pasture',
   intro: '해 질 녘, 목자들이 양을 돌담 우리로 몰아넣는다. 양들이 제 목자의 소리를 알아듣는다.',
-  beats: [{ ref: 'john:10:1-6' }, { ref: 'john:10:7-10' }, { ref: 'john:10:11-18' }, { ref: 'john:10:19-21' }],
+  beats: [{ ref: 'john:10:1-6', game: { key: 'Voice', when: 'after' } }, { ref: 'john:10:7-10' }, { ref: 'john:10:11-18' }, { ref: 'john:10:19-21' }],
 });
 add({
   id: '10b',
@@ -283,7 +289,7 @@ add({
   beats: [
     { ref: 'john:11:17-27' },
     { ref: 'john:11:28-37' },
-    { ref: 'john:11:38-44', note: '사람들이 무덤 앞에 모였다. 돌 앞에서 모두 숨을 죽인다.' },
+    { ref: 'john:11:38-44', note: '사람들이 무덤 앞에 모였다. 돌 앞에서 모두 숨을 죽인다.', game: { key: 'Stone', when: 'after' } },
     { ref: 'john:11:45-53' },
     { ref: 'john:11:54-57' },
   ],
@@ -296,7 +302,7 @@ add({
   title: '향유',
   sub: '베다니의 저녁',
   setting: 'bethany',
-  beats: [{ ref: 'john:12:1-8', note: '집 안에 향기가 가득 퍼진다. 문밖에 있던 나에게까지 난다.' }, { ref: 'john:12:9-11' }],
+  beats: [{ ref: 'john:12:1-8', note: '집 안에 향기가 가득 퍼진다. 문밖에 있던 나에게까지 난다.', game: { key: 'Scent', when: 'after' } }, { ref: 'john:12:9-11' }],
 });
 add({
   id: '12b',
@@ -324,7 +330,7 @@ add({
   sub: '유월절 전, 다락방',
   setting: 'upper',
   intro: '낮은 식탁 둘레에 사람들이 기대어 앉았다. 등잔 불빛이 흔들린다. 나는 문가에서 물 항아리를 날랐다.',
-  beats: [{ ref: 'john:13:1-11', note: '대야와 수건이 놓였다.' }, { ref: 'john:13:12-20' }, { ref: 'john:13:21-30', note: '한 사람이 밤 속으로 나간다.' }, { ref: 'john:13:31-38' }],
+  beats: [{ ref: 'john:13:1-11', note: '대야와 수건이 놓였다.', game: { key: 'Wash', when: 'before' } }, { ref: 'john:13:12-20' }, { ref: 'john:13:21-30', note: '한 사람이 밤 속으로 나간다.' }, { ref: 'john:13:31-38' }],
 });
 add({
   id: '14',
@@ -455,7 +461,7 @@ add({
   setting: 'shore',
   intro: '밤새 그물을 던졌지만 아무것도 잡지 못했다. 동이 터 온다. 바닷가에 숯불 연기가 오른다.',
   beats: [
-    { ref: 'john:21:1-8' },
+    { ref: 'john:21:1-8', game: { key: 'Net', when: 'after' } },
     { ref: 'john:21:9-14', note: '숯불 위에 생선과 떡이 놓여 있다. 그날 밤 뜰의 숯불이 떠올랐다.' },
     { ref: 'john:21:15-19' },
     { ref: 'john:21:20-23' },

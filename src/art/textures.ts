@@ -620,6 +620,15 @@ export function generateProps(scene: Phaser.Scene) {
     ],
     { l: PAL.leaf, L: PAL.forest, b: PAL.taupe, B: PAL.rust },
   );
+  // 소(성전 뜰에서 팔던 제물용 소)
+  mapTexture(scene, 'ox', ['h.............h', 'hh..........hh.', '.BBBBBBBBBBBBBb', 'BBBBBBBBBBBBBeb', 'BBBBBBBBBBBBBBn', 'BBBBBBBBBBBBBb.', '.l.l.....l.l...', '.l.l.....l.l...'], {
+    h: PAL.mist,
+    B: PAL.clay,
+    b: PAL.rust,
+    e: PAL.ink,
+    n: PAL.peach,
+    l: PAL.bark,
+  });
   // 양
   mapTexture(scene, 'sheep', ['.WWWWW...', 'WWWWWWWhh', 'WWWWWWWhe', 'WWWWWWWh.', '.l.l.l.l.'], { W: PAL.white, h: PAL.mud, e: PAL.ink, l: PAL.mud });
   // 돌담 한 칸
