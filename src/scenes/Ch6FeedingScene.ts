@@ -7,6 +7,7 @@ import { faceAndWalk, faceTo, grassTile } from '../art/textures.ts';
 import { Save } from '../state/save.ts';
 import { Controls } from '../ui/Controls.ts';
 import { choose, say, titleCard } from '../ui/Dialog.ts';
+import { menuButtonInset } from '../ui/layout.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
 import { drawPanel } from '../ui/panel.ts';
 import { bt, DEPTH_UI, measurer, Tag } from '../ui/text.ts';
@@ -292,7 +293,8 @@ export class Ch6FeedingScene extends Phaser.Scene {
     hud(this.add.image(87, 12, 'fig'));
     this.figText = hud(bt(this, 95, 5, `${this.figs}`, PAL.white));
     // 오른쪽 위: 목표
-    this.goalText = hud(new Tag(this, W - 4, 4, ' ', { fg: PAL.white, bg: PAL.night, border: PAL.ink, originX: 1, padY: 4 }).setVisible(false));
+    const inset = menuButtonInset(this.scale.zoom, isPortraitScreen());
+    this.goalText = hud(new Tag(this, W - 4 - inset, 4, ' ', { fg: PAL.white, bg: PAL.night, border: PAL.ink, originX: 1, padY: 4 }).setVisible(false));
     const walkHint = isPortraitScreen() ? '패드로 걷기 · 사람 옆에서 확인 버튼으로 말 걸기' : '누르고 있는 쪽으로 걷기 · 가까이서 사람을 눌러 말 걸기';
     this.hint = hud(new Tag(this, W / 2, H - 8, ' ', { fg: PAL.white, bg: PAL.ink, border: PAL.indigo, originX: 0.5, originY: 1, padY: 4 }));
     this.showHint(walkHint);
