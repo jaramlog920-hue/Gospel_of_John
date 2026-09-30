@@ -290,7 +290,7 @@ export class Ch6FeedingScene extends Phaser.Scene {
     hud(this.add.rectangle(22, 9, 48, 6, PAL.ink).setOrigin(0));
     this.hungerBar = hud(this.add.rectangle(23, 10, 46, 4, PAL.honey).setOrigin(0));
     hud(this.add.image(87, 12, 'fig'));
-    this.figText = hud(bt(this, 95, 7, `${this.figs}`, PAL.white));
+    this.figText = hud(bt(this, 95, 5, `${this.figs}`, PAL.white));
     // 오른쪽 위: 목표
     this.goalText = hud(new Tag(this, W - 4, 4, ' ', { fg: PAL.white, bg: PAL.night, border: PAL.ink, originX: 1, padY: 4 }).setVisible(false));
     const walkHint = isPortraitScreen() ? '패드로 걷기 · 사람 옆에서 확인 버튼으로 말 걸기' : '누르고 있는 쪽으로 걷기 · 가까이서 사람을 눌러 말 걸기';

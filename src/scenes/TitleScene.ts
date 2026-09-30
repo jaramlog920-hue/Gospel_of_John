@@ -104,7 +104,8 @@ export class TitleScene extends Phaser.Scene {
     const buttons = options.map((label, i) => {
       const y = top + i * (bh + gap);
       const g = this.add.graphics();
-      const text = bt(this, W / 2, y + 5, label, PAL.white).setOrigin(0.5, 0);
+      // 한글 글리프(9px)는 글자 상자 위에서 2px 아래에 있다. 버튼 안쪽(그림자 제외) 세로 가운데에 맞춘다.
+      const text = bt(this, W / 2, y + Math.floor((bh - 9) / 2) - 2, label, PAL.white).setOrigin(0.5, 0);
       const hit = this.add.zone(x, y, bw, bh).setOrigin(0).setInteractive({ useHandCursor: true });
       return { g, text, hit, y };
     });

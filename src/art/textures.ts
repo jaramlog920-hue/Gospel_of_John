@@ -75,8 +75,13 @@ export interface PersonStyle {
   hairShade?: number;
   skin?: number;
   skinShade?: number;
-  headcloth?: number;
-  headclothShade?: number;
+  /** 여자: 겉옷(베일)을 머리 위로 늘어뜨린다. 이마 띠는 두르지 않는다(시대 고증). */
+  veil?: number;
+  veilShade?: number;
+  /** 성인 남자: 짧은 머리에 수염 */
+  beard?: boolean;
+  /** 튜닉의 세로 줄무늬(클라비) */
+  clavi?: number;
   kid?: boolean;
 }
 
@@ -97,8 +102,8 @@ function drawPerson(p: Pix, ox: number, dir: Facing, frame: number, s: PersonSty
   const feet = 21;
   const set = (x: number, y: number, c: number) => p.set(ox + x, y, c);
   const rect = (x: number, y: number, w: number, h: number, c: number) => p.rect(ox + x, y, w, h, c);
-  const cloth = s.headcloth;
-  const clothShade = s.headclothShade ?? s.robeShade;
+  const veil = s.veil;
+  const veilShade = s.veilShade ?? s.robeShade;
 
   if (dir === 'side') {
     // 머리(오른쪽을 봄)
@@ -112,11 +117,16 @@ function drawPerson(p: Pix, ox: number, dir: Facing, frame: number, s: PersonSty
     set(9, t + 7, PAL.salmon);
     set(8, t + 7, skinShade);
     rect(5, t + 4, 1, 3, hairShade);
-    if (cloth !== undefined) {
-      rect(5, t, 7, 3, cloth);
-      rect(4, t + 3, 4, 6, cloth);
-      rect(4, t + 3, 1, 6, clothShade);
-      rect(5, t + 2, 7, 1, s.sash);
+    if (s.beard) {
+      rect(8, t + 7, 3, 2, hair);
+      set(11, t + 7, hair);
+    }
+    if (veil !== undefined) {
+      // 베일: 머리 위에서 뒤통수를 덮고 어깨까지 늘어진다.
+      rect(5, t, 6, 1, veil);
+      rect(4, t + 1, 8, 3, veil);
+      rect(4, t + 4, 4, 8, veil);
+      rect(4, t + 4, 1, 8, veilShade);
     }
     // 몸통
     for (let y = b0; y < feet; y++) {
@@ -125,6 +135,7 @@ function drawPerson(p: Pix, ox: number, dir: Facing, frame: number, s: PersonSty
       set(wide ? 5 : 6, y, s.robeShade);
     }
     rect(6, b0 + 4, 5, 1, s.sash);
+    if (s.clavi !== undefined) for (let y = b0 + 5; y < feet; y++) set(9, y, s.clavi);
     // 앞팔: 걸을 때 앞뒤로 흔든다.
     const hand = frame === 1 ? 10 : frame === 3 ? 7 : 9;
     rect(8, b0 + 1, 2, 3, s.robeShade);
@@ -155,19 +166,25 @@ function drawPerson(p: Pix, ox: number, dir: Facing, frame: number, s: PersonSty
     rect(9, t + 5, 1, 2, PAL.ink);
     set(5, t + 7, PAL.salmon);
     set(10, t + 7, PAL.salmon);
-    set(6, t + 2, PAL.white); // 머리 윤기
+    if (s.beard) {
+      rect(5, t + 7, 6, 1, hair);
+      rect(6, t + 8, 4, 1, hair);
+      set(7, t + 7, PAL.bark); // 입
+      set(8, t + 7, PAL.bark);
+    }
   } else {
     rect(4, t + 3, 8, 5, hair);
     rect(5, t + 8, 6, 1, hair);
     rect(10, t + 2, 2, 6, hairShade);
     set(8, t + 8, skin);
   }
-  if (cloth !== undefined) {
-    rect(4, t, 8, 3, cloth);
-    rect(3, t + 3, 2, 6, cloth);
-    rect(11, t + 3, 2, 6, clothShade);
-    rect(4, t + 2, 8, 1, s.sash);
-    if (dir === 'up') rect(4, t + 3, 8, 6, cloth), rect(9, t + 3, 3, 6, clothShade);
+  if (veil !== undefined) {
+    // 베일: 이마 위를 덮고 양옆으로 어깨까지 늘어진다(이마 띠 없음).
+    rect(5, t, 6, 1, veil);
+    rect(4, t + 1, 8, 3, veil);
+    rect(3, t + 3, 2, 9, veil);
+    rect(11, t + 3, 2, 9, veilShade);
+    if (dir === 'up') rect(4, t + 3, 8, 9, veil), rect(9, t + 3, 3, 9, veilShade);
   }
   // 몸통
   for (let y = b0; y < feet; y++) {
@@ -176,6 +193,8 @@ function drawPerson(p: Pix, ox: number, dir: Facing, frame: number, s: PersonSty
     rect(wide ? 10 : 9, y, 2, 1, s.robeShade);
   }
   rect(5, b0 + 4, 6, 1, s.sash);
+  if (s.clavi !== undefined)
+    for (let y = b0; y < feet; y++) if (y !== b0 + 4) set(6, y, s.clavi), set(9, y, s.clavi);
   if (dir === 'down') rect(7, b0, 2, 1, skinShade); // 목
   // 팔
   const swing = frame === 1 ? -1 : frame === 3 ? 1 : 0;
@@ -240,18 +259,27 @@ export function faceTo(sprite: Phaser.GameObjects.Sprite, dir: Facing, left = fa
   sprite.setFrame(FACINGS.indexOf(dir) * 4);
 }
 
-/** 16×16 앉은 사람(무리) */
-function makeSitter(scene: Phaser.Scene, key: string, robe: number, robeShade: number, head: number, headShade: number) {
+/** 16×16 앉은 사람(무리). 남자는 짧은 머리와 수염, 여자는 베일. */
+function makeSitter(scene: Phaser.Scene, key: string, robe: number, robeShade: number, woman: boolean, cover: number, coverShade: number) {
   const p = new Pix(16, 16);
-  p.rect(5, 1, 6, 2, head);
-  p.rect(4, 2, 8, 1, head);
+  const hair = PAL.mud;
   p.rect(5, 3, 6, 4, PAL.cream);
-  p.rect(4, 3, 1, 4, head);
-  p.rect(11, 3, 1, 4, headShade);
   p.rect(10, 3, 1, 4, PAL.peach);
   p.set(6, 4, PAL.ink);
   p.set(9, 4, PAL.ink);
-  p.set(5, 5, PAL.salmon);
+  if (woman) {
+    p.rect(5, 1, 6, 1, cover);
+    p.rect(4, 2, 8, 1, cover);
+    p.rect(3, 3, 2, 6, cover);
+    p.rect(11, 3, 2, 6, coverShade);
+    p.set(5, 5, PAL.salmon);
+  } else {
+    p.rect(5, 1, 6, 1, hair);
+    p.rect(4, 2, 8, 1, hair);
+    p.rect(4, 3, 1, 3, hair);
+    p.rect(11, 3, 1, 3, hair);
+    p.rect(5, 6, 6, 1, hair);
+  }
   p.rect(4, 7, 8, 4, robe);
   p.rect(2, 10, 12, 3, robe);
   p.rect(10, 7, 2, 4, robeShade);
@@ -261,51 +289,56 @@ function makeSitter(scene: Phaser.Scene, key: string, robe: number, robeShade: n
   pixTexture(scene, key, p);
 }
 
+// 옷감: 1세기 갈릴리 서민의 양모·아마 옷은 흰빛·베이지·갈색이 많고, 염색은 흙빛·쪽빛·꼭두서니 계열이었다.
 const ROBE_SET: [number, number][] = [
-  [PAL.berry, PAL.wine],
-  [PAL.olive, PAL.moss],
-  [PAL.navy, PAL.indigo],
-  [PAL.tan, PAL.clay],
-  [PAL.purple, PAL.grape],
-  [PAL.aqua, PAL.teal],
   [PAL.khaki, PAL.taupe],
+  [PAL.cream, PAL.peach],
+  [PAL.tan, PAL.clay],
+  [PAL.mist, PAL.steel],
+  [PAL.navy, PAL.indigo],
+  [PAL.clay, PAL.rust],
+  [PAL.sage, PAL.moss],
   [PAL.salmon, PAL.brick],
 ];
-const HEAD_SET: [number, number][] = [
+const VEIL_SET: [number, number][] = [
   [PAL.mist, PAL.steel],
   [PAL.cream, PAL.peach],
-  [PAL.honey, PAL.tan],
-  [PAL.lavender, PAL.lilac],
-  [PAL.white, PAL.mist],
+  [PAL.navy, PAL.indigo],
+  [PAL.khaki, PAL.taupe],
 ];
 
 export function generateTextures(scene: Phaser.Scene) {
   if (scene.textures.exists('player')) return;
 
-  makePerson(scene, 'player', { robe: PAL.aqua, robeShade: PAL.teal, sash: PAL.gold, hair: PAL.mud, hairShade: PAL.ink, kid: true });
-  makePerson(scene, 'kid-cry', { robe: PAL.rose, robeShade: PAL.berry, sash: PAL.white, hair: PAL.rust, hairShade: PAL.bark, kid: true });
-  makePerson(scene, 'kid-lunch', { robe: PAL.honey, robeShade: PAL.tan, sash: PAL.clay, hair: PAL.mud, kid: true });
-  makePerson(scene, 'light-figure', { robe: PAL.white, robeShade: PAL.mist, sash: PAL.gold, hair: PAL.mud, skin: PAL.cream });
+  // 주인공·아이들: 맨머리, 허리띠를 맨 짧은 튜닉
+  makePerson(scene, 'player', { robe: PAL.aqua, robeShade: PAL.teal, sash: PAL.mud, hair: PAL.mud, hairShade: PAL.ink, clavi: PAL.teal, kid: true });
+  makePerson(scene, 'kid-cry', { robe: PAL.rose, robeShade: PAL.berry, sash: PAL.bark, hair: PAL.rust, hairShade: PAL.bark, kid: true });
+  makePerson(scene, 'kid-lunch', { robe: PAL.cream, robeShade: PAL.peach, sash: PAL.clay, hair: PAL.mud, kid: true });
+  makePerson(scene, 'light-figure', { robe: PAL.white, robeShade: PAL.mist, sash: PAL.khaki, hair: PAL.mud, beard: true, clavi: PAL.steel });
+  // 무리: crowd1·4·5는 남자(짧은 머리·수염), crowd0·2·3은 여자(베일)
+  const women = new Set([0, 2, 3]);
   for (let i = 0; i < 6; i++) {
     const [robe, robeShade] = ROBE_SET[i];
-    const [cloth, clothShade] = HEAD_SET[i % HEAD_SET.length];
+    const [veil, veilShade] = VEIL_SET[i % VEIL_SET.length];
+    const woman = women.has(i);
     makePerson(scene, `crowd${i}`, {
       robe,
       robeShade,
-      sash: ROBE_SET[(i + 3) % ROBE_SET.length][0],
-      hair: PAL.mud,
-      headcloth: cloth,
-      headclothShade: clothShade,
+      sash: i % 2 ? PAL.bark : PAL.mud,
+      hair: i === 4 ? PAL.steel : PAL.mud, // crowd4: 흰머리 노인
+      hairShade: PAL.ink,
       skin: i % 2 ? PAL.tan : PAL.cream,
       skinShade: i % 2 ? PAL.clay : PAL.peach,
+      ...(woman ? { veil, veilShade } : { beard: true, clavi: robeShade }),
     });
   }
-  ROBE_SET.forEach(([r, rs], i) => makeSitter(scene, `sitter${i}`, r, rs, ...HEAD_SET[i % HEAD_SET.length]));
+  ROBE_SET.forEach(([r, rs], i) => makeSitter(scene, `sitter${i}`, r, rs, i % 3 === 1, ...VEIL_SET[i % VEIL_SET.length]));
 
   // ───────── 음식과 바구니 ─────────
-  mapTexture(scene, 'bread', ['..hhhhhh..', '.hHHHHHHh.', 'hHHhHHhHHc', 'hHHHHHHHHc', '.cccccccc.'], {
-    h: PAL.honey,
-    H: PAL.gold,
+  // 보리떡: 1세기 떡은 납작하고 둥근 모양이었다.
+  mapTexture(scene, 'bread', ['..hhhhhh..', '.hHhHHhHh.', 'hHHHHHHHHc', '.cccccccc.'], {
+    h: PAL.khaki,
+    H: PAL.honey,
     c: PAL.clay,
   });
   mapTexture(scene, 'fish', ['..sssss..s.', '.sMMMMMs.ss', 'sMeMMMMMss.', 'sSSSSSSSss.', '.sSSSSSs.ss', '..sssss..s.'], {
@@ -314,7 +347,7 @@ export function generateTextures(scene: Phaser.Scene) {
     S: PAL.steel,
     e: PAL.ink,
   });
-  mapTexture(scene, 'crumb', ['hh', 'hc'], { h: PAL.honey, c: PAL.clay });
+  mapTexture(scene, 'crumb', ['hh', 'hc'], { h: PAL.khaki, c: PAL.clay });
   mapTexture(scene, 'fig', ['..g..', '.ww..', 'wwWw.', 'wWwww', 'wwwwp', '.www.'], {
     g: PAL.forest,
     w: PAL.purple,
@@ -324,8 +357,8 @@ export function generateTextures(scene: Phaser.Scene) {
   const basketRows = ['WWWWWWWWWWWW', 'WdWdWdWdWdWd', 'WWWWWWWWWWWW', '.WdWdWdWdWd.', '.WWWWWWWWWW.', '..dddddddd..'];
   mapTexture(scene, 'basket', basketRows, { W: PAL.khaki, d: PAL.taupe });
   mapTexture(scene, 'basket-full', ['.hHhHhhHhc..', 'hHhHhHhHhHc.', ...basketRows], {
-    h: PAL.honey,
-    H: PAL.gold,
+    h: PAL.khaki,
+    H: PAL.honey,
     c: PAL.clay,
     W: PAL.khaki,
     d: PAL.taupe,
@@ -442,6 +475,7 @@ export function generateTextures(scene: Phaser.Scene) {
     }
     p.draw(ctx);
   });
+  // 거울: 1세기에는 유리 거울이 아니라 청동을 갈아 만든 거울을 썼다.
   for (const [key, flip] of [
     ['mirror-slash', false],
     ['mirror-back', true],
@@ -449,26 +483,31 @@ export function generateTextures(scene: Phaser.Scene) {
     const p = new Pix(16, 16);
     for (let i = 0; i < 11; i++) {
       const x = flip ? 2 + i : 13 - i;
-      p.set(x, 2 + i, PAL.white);
-      p.set(x + (flip ? 1 : -1), 2 + i, PAL.mist);
-      p.set(x + (flip ? -1 : 1), 2 + i, PAL.steel);
+      p.set(x, 2 + i, PAL.gold);
+      p.set(x + (flip ? 1 : -1), 2 + i, PAL.honey);
+      p.set(x + (flip ? -1 : 1), 2 + i, PAL.tan);
     }
+    p.set(flip ? 5 : 10, 5, PAL.white);
     p.rect(6, 13, 4, 2, PAL.rust);
     p.outline();
     pixTexture(scene, key, p);
   }
-  mapTexture(scene, 'lamp-off', ['.....c.....', '....ccc....', '...........', 'CCCCCCCCCCC', '.CkkkkkkkC.', '..CCCCCCC..', '....CkC....', '...CCCCC...'], {
-    c: PAL.shadow,
-    C: PAL.rust,
-    k: PAL.clay,
+  // 등잔: 1세기 갈릴리의 흙 기름 등잔(납작한 몸통, 심지를 꽂는 부리)
+  mapTexture(scene, 'lamp-off', ['...........', '...........', '...........', '..ccccc....', '.cCoCCCcc..', 'cCCCCCCCCcw', '.cCCCCCcc..', '..ccccc....'], {
+    c: PAL.rust,
+    C: PAL.clay,
+    o: PAL.bark,
+    w: PAL.mud,
   });
-  mapTexture(scene, 'lamp-on', ['.....g.....', '....gyg....', '...gyWyg...', 'CCCCfCCCCCC', '.CkkkkkkkC.', '..CCCCCCC..', '....CkC....', '...CCCCC...'], {
-    g: PAL.flame,
+  mapTexture(scene, 'lamp-on', ['.........r.', '........rfr', '........fyf', '..ccccc.yWy', '.cCoCCCccf.', 'cCCCCCCCCcw', '.cCCCCCcc..', '..ccccc....'], {
+    c: PAL.rust,
+    C: PAL.tan,
+    o: PAL.bark,
+    w: PAL.mud,
+    r: PAL.red,
+    f: PAL.flame,
     y: PAL.gold,
     W: PAL.white,
-    f: PAL.orange,
-    C: PAL.rust,
-    k: PAL.honey,
   });
   mapTexture(scene, 'emitter', ['..oooo..', '.oyyyyo.', 'oyyWWyyo', 'oyWWWWyo', 'oyWWWWyo', 'oyyWWyyo', '.oyyyyo.', '..oooo..'], {
     o: PAL.orange,
