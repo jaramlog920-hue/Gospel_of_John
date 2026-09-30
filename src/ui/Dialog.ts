@@ -161,13 +161,14 @@ export async function titleCard(scene: Phaser.Scene, title: string, sub: string)
   const { width: W, height: H } = scene.scale;
   const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH_UI + 20);
   root.add(scene.add.rectangle(0, 0, W, H, PAL.ink).setOrigin(0));
-  const t = bt(scene, W / 2, H / 2 - 12, title, PAL.honey, 'body').setOrigin(0.5);
-  const line = scene.add.rectangle(W / 2, H / 2 + 2, 0, 1, PAL.rust);
-  const s = bt(scene, W / 2, H / 2 + 12, sub, PAL.steel).setOrigin(0.5);
+  const t = bt(scene, W / 2, H / 2 - 14, title, PAL.honey, 'body').setOrigin(0.5);
+  // 제목 아래 줄: 가운데에서 양옆으로 펼쳐진다(폭 대신 가로 배율을 늘려야 가운데를 기준으로 커진다).
+  const line = scene.add.rectangle(W / 2, H / 2, Math.min(160, W - 40), 1, PAL.rust).setScale(0, 1);
+  const s = bt(scene, W / 2, H / 2 + 14, sub, PAL.steel).setOrigin(0.5);
   root.add([t, line, s]);
   root.setAlpha(0);
   await new Promise<void>((r) => scene.tweens.add({ targets: root, alpha: 1, duration: 400, onComplete: () => r() }));
-  await new Promise<void>((r) => scene.tweens.add({ targets: line, width: Math.min(160, W - 40), duration: 500, onComplete: () => r() }));
+  await new Promise<void>((r) => scene.tweens.add({ targets: line, scaleX: 1, duration: 500, ease: 'Cubic.Out', onComplete: () => r() }));
   await new Promise<void>((r) => scene.time.delayedCall(1000, () => r()));
   await new Promise<void>((r) => scene.tweens.add({ targets: root, alpha: 0, duration: 500, onComplete: () => r() }));
   root.destroy();

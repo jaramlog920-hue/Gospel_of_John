@@ -28,8 +28,10 @@ export class TitleScene extends Phaser.Scene {
 
   async create() {
     const { width: W, height: H } = this.scale;
-    const cy = Math.floor(H * 0.34);
     const seaTop = Math.floor(H * 0.72);
+    const hasSave = Save.load(1) !== null && (Save.data.step > 0 || Save.data.chaptersDone.length > 0);
+    const options = hasSave ? ['이어하기', '처음부터', '일곱 표적', '일기장'] : ['시작하기', '일곱 표적'];
+    const L = this.layout(options.length);
 
     // 해 진 뒤의 하늘: 남색에서 수평선의 자주빛으로. 띠 경계는 디더링으로 섞는다.
     const sky = this.add.graphics();
@@ -56,20 +58,22 @@ export class TitleScene extends Phaser.Scene {
     this.tweens.add({ targets: sea, tilePositionX: 32, duration: 4000, repeat: -1 });
     this.add.rectangle(0, seaTop, W, 1, PAL.lilac).setOrigin(0).setAlpha(0.7);
 
-    this.add.image(W / 2, cy, 'halo').setScale(2.6).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD);
-    outlinedText(this, W / 2, cy - 8, '일곱 표적', PAL.honey, 2);
-    bt(this, W / 2, cy + 18, '와서 보라', PAL.cream, 'body').setOrigin(0.5);
+    // 로고 → 부제는 가깝게, 부제 → 두루마리 칩은 조금 띄우고, 칩 → 메뉴는 더 넓게(묶음이 구분되게)
+    this.add.image(W / 2, L.logoY, 'halo').setScale(2.6).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD);
+    outlinedText(this, W / 2, L.logoY, '일곱 표적', PAL.honey, 2);
+    bt(this, W / 2, L.subY, '와서 보라', PAL.cream, 'body').setOrigin(0.5);
 
     // 작은 두루마리 칩: 참조 표기만 보여주고, 누르면 본문 원문이 열린다.
-    const chip = new Tag(this, W / 2, cy + 36, `두루마리 · ${Scripture.label(TITLE_REF)}`, {
+    const chip = new Tag(this, W / 2, L.chipTop, `두루마리 · ${Scripture.label(TITLE_REF)}`, {
       fg: PAL.ink,
       bg: PAL.cream,
       border: PAL.rust,
       originX: 0.5,
-      padY: 4,
+      padX: 8,
+      padY: 5,
     });
 
-    const prompt = bt(this, W / 2, Math.floor((cy + 60 + seaTop) / 2), '화면을 눌러 시작', PAL.white).setOrigin(0.5);
+    const prompt = bt(this, W / 2, L.promptY, '화면을 눌러 시작', PAL.white).setOrigin(0.5);
     this.tweens.add({ targets: prompt, alpha: 0.25, duration: 600, yoyo: true, repeat: -1, ease: 'Stepped', easeParams: [3] });
 
     let scrollOpen = false;
@@ -86,12 +90,10 @@ export class TitleScene extends Phaser.Scene {
     while (scrollOpen);
     prompt.destroy();
 
-    const hasSave = Save.load(1) !== null && (Save.data.step > 0 || Save.data.chaptersDone.length > 0);
-    const options = hasSave ? ['이어하기', '처음부터', '일곱 표적', '일기장'] : ['시작하기', '일곱 표적'];
-    let pick = options[await this.menu(options, cy + 58)];
+    let pick = options[await this.menu(options, L.menuTop, L.bh, L.gap)];
     while (pick === '일곱 표적') {
       await showSigns(this);
-      pick = options[await this.menu(options, cy + 58)];
+      pick = options[await this.menu(options, L.menuTop, L.bh, L.gap)];
     }
     if (pick === '일기장') return this.scene.start('Diary');
     if (pick === '이어하기') return startStep(this, Math.min(Save.data.step, FLOW.length - 1));
@@ -100,13 +102,42 @@ export class TitleScene extends Phaser.Scene {
     this.cameras.main.once('camerafadeoutcomplete', () => startStep(this, 0));
   }
 
+  /**
+   * 세로 배치. 8칸 단위 간격으로 로고·부제·칩·메뉴를 묶고, 묶음 전체를 화면 세로 가운데(살짝 위)에 둔다.
+   * 세로가 짧은 화면에서는 간격을 비율대로 줄인다.
+   */
+  private layout(buttons: number) {
+    const H = this.scale.height;
+    const logoH = 22;
+    const subH = 11;
+    const chipH = 19;
+    let bh = 22;
+    let gap = 8;
+    let gaps = [10, 16, 24];
+    const fixed = () => logoH + subH + chipH + buttons * bh + (buttons - 1) * gap;
+    const avail = H - 24;
+    const want = fixed() + gaps.reduce((a, b) => a + b, 0);
+    if (want > avail) {
+      bh = 20;
+      gap = 5;
+      const k = Math.max(0.35, (avail - fixed()) / gaps.reduce((a, b) => a + b, 0));
+      gaps = gaps.map((g) => Math.round(g * k));
+    }
+    const total = fixed() + gaps.reduce((a, b) => a + b, 0);
+    const top = Math.max(12, Math.round((H - total) * 0.45));
+    const logoY = top + logoH / 2;
+    const subY = top + logoH + gaps[0] + subH / 2;
+    const chipTop = top + logoH + gaps[0] + subH + gaps[1];
+    const menuTop = chipTop + chipH + gaps[2];
+    const menuH = buttons * bh + (buttons - 1) * gap;
+    return { logoY, subY, chipTop, menuTop, bh, gap, promptY: Math.round(menuTop + menuH / 2) };
+  }
+
   /** 세로로 쌓인 큰 버튼 메뉴. 방향키·확인 버튼·터치 모두 된다. */
-  private menu(options: string[], top: number): Promise<number> {
+  private menu(options: string[], top: number, bh = 22, gap = 8): Promise<number> {
     const { width: W } = this.scale;
     const measure = measurer('ui');
-    const bw = Math.max(96, ...options.map((o) => measure(o) + 36));
-    const bh = 18;
-    const gap = 5;
+    const bw = Math.min(W - 32, Math.max(128, ...options.map((o) => measure(o) + 48)));
     const x = Math.round((W - bw) / 2);
     const group = this.add.container(0, 0);
     const buttons = options.map((label, i) => {
