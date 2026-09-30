@@ -49,3 +49,8 @@ export function scrollLayout(w: number, h: number) {
 export function isPortraitView(w: number, h: number) {
   return h > w;
 }
+
+/** 가로 화면 오른쪽 위에 겹쳐 뜨는 메뉴 버튼(CSS 44px + 여백)만큼 비워 둘 논리 px */
+export function menuButtonInset(zoom: number, portrait: boolean) {
+  return portrait ? 0 : Math.ceil(60 / zoom);
+}

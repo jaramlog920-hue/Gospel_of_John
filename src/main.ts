@@ -5,6 +5,7 @@ import { Ch1LightScene } from './scenes/Ch1LightScene.ts';
 import { Ch6FeedingScene } from './scenes/Ch6FeedingScene.ts';
 import { DiaryScene } from './scenes/DiaryScene.ts';
 import { EndScene } from './scenes/EndScene.ts';
+import { openPauseMenu, PauseScene } from './scenes/PauseScene.ts';
 import { TitleScene } from './scenes/TitleScene.ts';
 import { computeView } from './ui/layout.ts';
 import { mountVirtualPad } from './ui/VirtualPad.ts';
@@ -30,7 +31,7 @@ const game = new Phaser.Game({
   backgroundColor: '#3d3656',
   scale: { mode: Phaser.Scale.NONE, zoom: view.zoom },
   input: { activePointers: 2 },
-  scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, CampfireScene, DiaryScene, EndScene],
+  scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, CampfireScene, DiaryScene, EndScene, PauseScene],
 });
 
 /** 화면 크기가 바뀌면 다시 그릴 때 넘길 이어하기 정보를 씬이 줄 수 있다. */
@@ -57,3 +58,7 @@ const refit = () => {
 };
 window.addEventListener('resize', refit);
 window.matchMedia('(orientation: portrait)').addEventListener('change', refit);
+
+// 메뉴: Esc 키, 세로 패드의 메뉴 버튼, 가로 화면 모서리의 메뉴 버튼
+window.addEventListener('keydown', (e) => e.code === 'Escape' && openPauseMenu(game));
+document.getElementById('menu-btn')?.addEventListener('click', () => openPauseMenu(game));

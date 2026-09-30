@@ -292,7 +292,7 @@ function makeSitter(scene: Phaser.Scene, key: string, robe: number, robeShade: n
 // 옷감: 1세기 갈릴리 서민의 양모·아마 옷은 흰빛·베이지·갈색이 많고, 염색은 흙빛·쪽빛·꼭두서니 계열이었다.
 const ROBE_SET: [number, number][] = [
   [PAL.khaki, PAL.taupe],
-  [PAL.cream, PAL.peach],
+  [PAL.white, PAL.mist], // 흰 아마포(피부색과 같은 크림색 옷은 쓰지 않는다)
   [PAL.tan, PAL.clay],
   [PAL.mist, PAL.steel],
   [PAL.navy, PAL.indigo],
@@ -300,9 +300,10 @@ const ROBE_SET: [number, number][] = [
   [PAL.sage, PAL.moss],
   [PAL.salmon, PAL.brick],
 ];
+// 베일은 피부색과 헷갈리지 않는 천 색만 쓴다(크림·살구색 금지).
 const VEIL_SET: [number, number][] = [
   [PAL.mist, PAL.steel],
-  [PAL.cream, PAL.peach],
+  [PAL.sage, PAL.moss],
   [PAL.navy, PAL.indigo],
   [PAL.khaki, PAL.taupe],
 ];
@@ -313,7 +314,7 @@ export function generateTextures(scene: Phaser.Scene) {
   // 주인공·아이들: 맨머리, 허리띠를 맨 짧은 튜닉
   makePerson(scene, 'player', { robe: PAL.aqua, robeShade: PAL.teal, sash: PAL.mud, hair: PAL.mud, hairShade: PAL.ink, clavi: PAL.teal, kid: true });
   makePerson(scene, 'kid-cry', { robe: PAL.rose, robeShade: PAL.berry, sash: PAL.bark, hair: PAL.rust, hairShade: PAL.bark, kid: true });
-  makePerson(scene, 'kid-lunch', { robe: PAL.cream, robeShade: PAL.peach, sash: PAL.clay, hair: PAL.mud, kid: true });
+  makePerson(scene, 'kid-lunch', { robe: PAL.white, robeShade: PAL.mist, sash: PAL.clay, hair: PAL.mud, kid: true });
   makePerson(scene, 'light-figure', { robe: PAL.white, robeShade: PAL.mist, sash: PAL.khaki, hair: PAL.mud, beard: true, clavi: PAL.steel });
   // 무리: crowd1·4·5는 남자(짧은 머리·수염), crowd0·2·3은 여자(베일)
   const women = new Set([0, 2, 3]);

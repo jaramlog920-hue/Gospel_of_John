@@ -3,7 +3,16 @@
 
 type Dir = 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight';
 
-const KEY_CODES: Record<string, number> = { ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, Enter: 13 };
+const KEY_CODES: Record<string, number> = { ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, Enter: 13, Escape: 27 };
+
+/** 누른 느낌을 주는 짧은 진동(지원하는 기기만, 주로 안드로이드) */
+function buzz(ms = 8) {
+  try {
+    navigator.vibrate?.(ms);
+  } catch {
+    // 진동을 막은 브라우저에서는 조용히 넘어간다.
+  }
+}
 
 function sendKey(type: 'keydown' | 'keyup', code: string) {
   const e = new KeyboardEvent(type, { code, key: code, bubbles: true, cancelable: true });
@@ -28,6 +37,7 @@ export function mountVirtualPad(container: HTMLElement) {
         <path class="arrow right" d="M88 50l-10 8V42z" />
       </svg>
     </div>
+    <button class="pad-menu" aria-label="메뉴">메뉴</button>
     <button class="pad-a" aria-label="확인">확인</button>
   `;
   const dpad = container.querySelector<HTMLElement>('.pad-dpad')!;
@@ -38,7 +48,9 @@ export function mountVirtualPad(container: HTMLElement) {
   let activeId: number | null = null;
   const setDirs = (next: Set<Dir>) => {
     for (const d of held) if (!next.has(d)) (held.delete(d), sendKey('keyup', d));
-    for (const d of next) if (!held.has(d)) (held.add(d), sendKey('keydown', d));
+    let pressed = false;
+    for (const d of next) if (!held.has(d)) (held.add(d), sendKey('keydown', d), (pressed = true));
+    if (pressed) buzz(6);
     dpad.dataset.dirs = [...held].join(' ');
   };
   const dirsAt = (e: PointerEvent) => {
@@ -75,6 +87,7 @@ export function mountVirtualPad(container: HTMLElement) {
   a.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     a.classList.add('down');
+    buzz();
     sendKey('keydown', 'Enter');
   });
   const up = () => {
@@ -85,6 +98,15 @@ export function mountVirtualPad(container: HTMLElement) {
   a.addEventListener('pointerup', up);
   a.addEventListener('pointercancel', up);
   a.addEventListener('pointerleave', up);
+
+  // 메뉴 버튼 = Esc(일시정지 메뉴)
+  const menu = container.querySelector<HTMLElement>('.pad-menu')!;
+  menu.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    buzz();
+    sendKey('keydown', 'Escape');
+    sendKey('keyup', 'Escape');
+  });
 
   // 화면을 돌리거나 앱을 벗어나면 눌린 키를 모두 뗀다.
   const releaseAll = () => {

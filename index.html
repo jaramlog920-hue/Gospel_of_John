@@ -64,7 +64,7 @@
       }
       .pad-dpad {
         position: relative;
-        height: min(78%, 44vw, 170px);
+        height: min(92%, 44vw, 170px);
         aspect-ratio: 1;
         touch-action: none;
       }
@@ -85,15 +85,17 @@
       .pad-dpad[data-dirs~='ArrowRight'] .right {
         fill: #f9c22b;
       }
+      /* 확인 버튼: 방향 패드 폭의 약 절반, 오른손 엄지 자리 */
       .pad-a {
-        height: min(50%, 26vw, 100px);
+        width: min(22vw, 88px);
         aspect-ratio: 1;
+        margin-top: 24px;
         border-radius: 50%;
         border: 3px solid #2e222f;
         padding: 0;
         background: #e83b3b;
         color: #ffffff;
-        font: 700 17px/1 system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+        font: 700 16px/1 system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
         letter-spacing: 1px;
         box-shadow:
           inset -4px -4px 0 #b33831,
@@ -110,11 +112,53 @@
           0 1px 0 #2e222f;
         background: #f04f78;
       }
+      /* 메뉴 버튼: 오른쪽 위 구석. 자주 누르지 않으므로 작게, 누르는 높이는 44px */
+      .pad-menu {
+        position: absolute;
+        top: 10px;
+        right: max(20px, 6vw);
+        min-width: 64px;
+        height: 44px;
+        padding: 0 14px;
+        border: 3px solid #2e222f;
+        border-radius: 22px;
+        background: #484a77;
+        color: #c7dcd0;
+        font: 700 13px/1 system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+        box-shadow: inset 0 3px 0 #4d65b4, 0 3px 0 #2e222f;
+        touch-action: none;
+        cursor: pointer;
+      }
+      .pad-menu:active {
+        transform: translateY(2px);
+        box-shadow: inset 0 3px 0 #4d65b4, 0 1px 0 #2e222f;
+      }
+      /* 가로 화면: 패드가 없으므로 오른쪽 위 모서리(대개 화면 옆 여백)에 메뉴 버튼 */
+      #menu-btn {
+        position: fixed;
+        top: max(8px, env(safe-area-inset-top));
+        right: max(8px, env(safe-area-inset-right));
+        width: 44px;
+        height: 44px;
+        border: 3px solid #2e222f;
+        border-radius: 10px;
+        background: #484a77;
+        color: #c7dcd0;
+        font: 700 20px/1 system-ui, sans-serif;
+        opacity: 0.85;
+        cursor: pointer;
+      }
+      @media (orientation: portrait) {
+        #menu-btn {
+          display: none;
+        }
+      }
     </style>
   </head>
   <body>
     <div id="game"></div>
     <div id="pad"></div>
+    <button id="menu-btn" aria-label="메뉴">≡</button>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
