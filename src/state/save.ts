@@ -14,13 +14,15 @@ export interface SaveData {
   /** 모은 절 참조 키(john:6:11). 말씀 도감용 */
   verses: string[];
   flags: Record<string, boolean>;
+  /** 게임 흐름(src/story/flow.ts)에서 지금 하고 있는 단계 번호 */
+  step: number;
   updatedAt: number;
 }
 
 const KEY = (slot: number) => `seven-signs:save:${slot}`;
 
 export function emptySave(): SaveData {
-  return { version: 1, chaptersDone: [], diary: [], verses: [], flags: {}, updatedAt: 0 };
+  return { version: 1, chaptersDone: [], diary: [], verses: [], flags: {}, step: 0, updatedAt: 0 };
 }
 
 let current: SaveData = emptySave();

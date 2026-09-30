@@ -16,9 +16,15 @@
 ## 명령
 
 - `npm run dev`: 개발 서버(비트맵 폰트를 먼저 만든다)
-- `npm test`: 본문·폰트·줄바꿈·화면 크기 테스트
+- `npm test`: 본문·폰트·줄바꿈·화면 크기 테스트, **879절 전체 수록 테스트**(`tests/coverage.test.ts`)
 - `npm run build`: 본문 검증 → 폰트 생성 → 타입 검사 → 빌드
 - 확인용 주소: `?scene=Ch6&checkpoint=rush`처럼 장면을 바로 열 수 있다.
+
+## 구조
+
+- 게임 흐름: `src/story/flow.ts`(이 순서로 879절이 한 번씩 나와야 한다)
+- 걷기 이야기 장면 데이터: `src/story/stories.ts`, 배경: `src/scenes/backdrops.ts`
+- 새 장면을 넣거나 본문 배분을 바꾸면 `npm test`로 전체 수록을 확인한다.
 
 ## 그림·UI
 

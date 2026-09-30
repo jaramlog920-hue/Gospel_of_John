@@ -7,7 +7,7 @@ import { showDiaryPage } from '../ui/DiaryPage.ts';
 import { choose, say } from '../ui/Dialog.ts';
 
 /** 메뉴를 열 수 있는 장면 */
-export const PAUSABLE = ['Ch1', 'Ch6', 'Campfire'];
+export const PAUSABLE = ['Ch1', 'Ch6', 'Story', 'Campfire'];
 
 export class PauseScene extends Phaser.Scene {
   constructor() {
