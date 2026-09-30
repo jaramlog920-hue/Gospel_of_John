@@ -53,7 +53,7 @@ export class Tag extends Phaser.GameObjects.Container {
 
   constructor(scene: Phaser.Scene, x: number, y: number, text: string, style: TagStyle = {}) {
     super(scene, x, y);
-    this.style = { fg: PAL.white, bg: PAL.ink, font: 'ui', padX: 5, padY: 3, originX: 0, originY: 0, border: -1, ...style };
+    this.style = { fg: PAL.white, bg: PAL.ink, font: 'ui', padX: 6, padY: 4, originX: 0, originY: 0, border: -1, ...style };
     this.bg = scene.add.rectangle(0, 0, 1, 1, this.style.bg).setOrigin(0);
     if (this.style.border >= 0) this.bg.setStrokeStyle(1, this.style.border);
     this.label = bt(scene, 0, 0, '', this.style.fg, this.style.font);
