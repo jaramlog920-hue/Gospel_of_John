@@ -6,28 +6,54 @@ import { Ch6FeedingScene } from './scenes/Ch6FeedingScene.ts';
 import { DiaryScene } from './scenes/DiaryScene.ts';
 import { EndScene } from './scenes/EndScene.ts';
 import { TitleScene } from './scenes/TitleScene.ts';
-import { GAME_HEIGHT, GAME_WIDTH } from './ui/layout.ts';
+import { computeView } from './ui/layout.ts';
 import { mountVirtualPad } from './ui/VirtualPad.ts';
 
 mountVirtualPad(document.getElementById('pad')!);
 
+const parent = document.getElementById('game')!;
+
+function measure() {
+  const r = parent.getBoundingClientRect();
+  const portrait = window.matchMedia('(orientation: portrait)').matches;
+  return computeView(r.width, r.height, window.devicePixelRatio || 1, portrait);
+}
+
+const view = measure();
 const game = new Phaser.Game({
   type: Phaser.AUTO,
-  parent: 'game',
-  width: GAME_WIDTH,
-  height: GAME_HEIGHT,
+  parent,
+  width: view.w,
+  height: view.h,
   pixelArt: true,
   roundPixels: true,
-  backgroundColor: '#1a1423',
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-  },
+  backgroundColor: '#3d3656',
+  scale: { mode: Phaser.Scale.NONE, zoom: view.zoom },
   input: { activePointers: 2 },
   scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, CampfireScene, DiaryScene, EndScene],
 });
 
-// 화면을 돌리면 게임을 담는 칸 크기가 CSS로 바뀐다. 한 박자 뒤 다시 맞춘다.
-const refit = () => requestAnimationFrame(() => game.scale.refresh());
+/** 화면 크기가 바뀌면 다시 그릴 때 넘길 이어하기 정보를 씬이 줄 수 있다. */
+export interface Checkpointed {
+  checkpoint(): object;
+}
+
+// 화면을 돌리거나 창 크기를 바꾸면 해상도를 다시 정하고, 지금 씬을 이어하기 지점부터 다시 그린다.
+let timer = 0;
+const refit = () => {
+  clearTimeout(timer);
+  timer = window.setTimeout(() => {
+    const v = measure();
+    const sizeChanged = v.w !== game.scale.width || v.h !== game.scale.height;
+    if (sizeChanged) game.scale.resize(v.w, v.h);
+    game.scale.setZoom(v.zoom);
+    if (!sizeChanged) return;
+    for (const s of game.scene.getScenes(true)) {
+      if (s.scene.key === 'Boot') continue;
+      const extra = 'checkpoint' in s ? (s as unknown as Checkpointed).checkpoint() : {};
+      s.scene.restart({ ...s.sys.settings.data, ...extra });
+    }
+  }, 200);
+};
 window.addEventListener('resize', refit);
 window.matchMedia('(orientation: portrait)').addEventListener('change', refit);

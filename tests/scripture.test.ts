@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { checkStructure, serialize, sha256, VERSES_PER_CHAPTER, type Verse } from '../scripts/scripture-lib.ts';
 import { Scripture } from '../src/data/Scripture.ts';
-import { SCROLL_TEXT_WIDTH } from '../src/ui/layout.ts';
+import { LANDSCAPE_MIN, PORTRAIT_MIN, scrollLayout } from '../src/ui/layout.ts';
 import { wrapWords } from '../src/ui/wrap.ts';
 import { listFiles, loadBdfWidths } from './helpers.ts';
 
@@ -70,13 +70,17 @@ describe('두루마리 줄바꿈', () => {
   const widths = loadBdfWidths('node_modules/galmuri/dist/Galmuri11.bdf');
   const measure = (s: string) => [...s].reduce((w, c) => w + (widths.get(c.codePointAt(0)!) ?? 12), 0);
 
-  it('모든 절이 띄어쓰기에서만 끊기고, 다시 이으면 원문과 같다', () => {
-    for (const x of verses) {
-      const lines = wrapWords(x.text, SCROLL_TEXT_WIDTH, measure);
-      expect(lines.join(' '), `${x.ch}:${x.v}`).toBe(x.text);
-      for (const line of lines) expect(measure(line), `${x.ch}:${x.v} "${line}"`).toBeLessThanOrEqual(SCROLL_TEXT_WIDTH);
-    }
-  });
+  // 가장 좁은 세로 화면과 기본 가로 화면 모두에서 확인한다.
+  for (const [name, min] of [['세로', PORTRAIT_MIN], ['가로', LANDSCAPE_MIN]] as const) {
+    const { textWidth } = scrollLayout(min.w, min.h);
+    it(`${name} 화면: 모든 절이 띄어쓰기에서만 끊기고, 다시 이으면 원문과 같다`, () => {
+      for (const x of verses) {
+        const lines = wrapWords(x.text, textWidth, measure);
+        expect(lines.join(' '), `${x.ch}:${x.v}`).toBe(x.text);
+        for (const line of lines) expect(measure(line), `${x.ch}:${x.v} "${line}"`).toBeLessThanOrEqual(textWidth);
+      }
+    });
+  }
 });
 
 describe('본문 하드코딩 금지', () => {

@@ -16,6 +16,8 @@ export class BootScene extends Phaser.Scene {
     generateTextures(this);
     const params = new URLSearchParams(location.search);
     const start = params.get('scene');
-    this.scene.start(start && this.scene.manager.keys[start] ? start : 'Title');
+    // 개발·확인용: ?scene=Ch6&checkpoint=rush 처럼 장면과 이어하기 지점을 바로 열 수 있다.
+    const data = Object.fromEntries([...params].filter(([k]) => k !== 'scene'));
+    this.scene.start(start && this.scene.manager.keys[start] ? start : 'Title', data);
   }
 }

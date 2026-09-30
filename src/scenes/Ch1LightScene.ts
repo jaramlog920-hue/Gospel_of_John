@@ -1,22 +1,29 @@
 // 1장 「태초에 말씀이」: 빛 퍼즐. 거울을 돌려 빛줄기를 꺾고 꺼진 등잔을 밝힌다.
-// 화면은 흑백으로 시작해서 단계를 풀 때마다 색이 돌아오고, 마지막에 32색이 한 번에 펼쳐진다.
+// 화면은 흑백으로 시작해서 단계를 풀 때마다 색이 돌아오고, 마지막에 온 색이 한 번에 펼쳐진다.
+// 본문은 1:1–18(서문)을 끊지 않고 단계마다 이어서 보여준다.
 import Phaser from 'phaser';
-import { css, PAL } from '../art/palette.ts';
+import { css, PAL, rgb } from '../art/palette.ts';
 import { LEVELS, parseLevel, toggleMirror, traceBeam, type Cell } from '../minigames/lightBeam.ts';
 import { Save } from '../state/save.ts';
 import { Controls } from '../ui/Controls.ts';
 import { say, titleCard } from '../ui/Dialog.ts';
-import { FONT_UI, GAME_WIDTH } from '../ui/layout.ts';
+import { FONT_UI } from '../ui/layout.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
 
 const TILE = 16;
-const OX = 64;
-const OY = 44;
-const REFS = ['john:1:1-5'];
+const INTRO_REF = 'john:1:1-3';
+/** 단계를 풀 때마다 이어지는 본문. INTRO_REF와 합치면 1:1–18 전체 */
+const LEVEL_REFS = ['john:1:4-5', 'john:1:6-9', 'john:1:10-18'];
+
+interface Ch1Data {
+  level?: number;
+}
 
 export class Ch1LightScene extends Phaser.Scene {
   private controls!: Controls;
   private level = 0;
+  private ox = 0;
+  private oy = 0;
   private grid: Cell[][] = [];
   private tiles: Phaser.GameObjects.Image[] = [];
   private beam!: Phaser.GameObjects.Graphics;
@@ -24,41 +31,64 @@ export class Ch1LightScene extends Phaser.Scene {
   private status!: Phaser.GameObjects.Text;
   private gray = { amount: 1 };
   private colorMatrix?: Phaser.FX.ColorMatrix;
+  /** 흑백 효과는 퍼즐 판에만 준다. 두루마리와 대화 상자는 제 색을 유지한다. */
+  private world!: Phaser.GameObjects.Container;
   private solving = false;
 
   constructor() {
     super('Ch1');
   }
 
-  async create() {
-    this.level = 0;
+  /** 화면을 돌려 다시 그릴 때 지금 단계부터 이어서 한다. */
+  checkpoint() {
+    return { level: this.level };
+  }
+
+  async create(data: Ch1Data) {
+    const { width: W, height: H } = this.scale;
+    const resumed = (data?.level ?? 0) > 0;
+    this.level = data?.level ?? 0;
     this.solving = false;
-    this.gray.amount = 1;
+    this.tiles = [];
+    this.halos = [];
+    this.gray.amount = 1 - this.level / LEVELS.length;
     this.controls = new Controls(this);
     this.cameras.main.setBackgroundColor(PAL.ink);
-    this.colorMatrix = this.cameras.main.postFX?.addColorMatrix();
+    this.world = this.add.container(0, 0);
+    this.colorMatrix = this.world.postFX?.addColorMatrix();
     this.applyGray();
 
-    for (let x = 0; x < GAME_WIDTH; x += 16) this.add.image(x, 164, 'water').setOrigin(0).setAlpha(0.8);
+    const cols = LEVELS[0][0].length;
+    const rows = LEVELS[0].length;
+    this.ox = Math.floor((W - cols * TILE) / 2);
+    this.oy = Math.floor((H - rows * TILE) / 2);
+    for (let x = 0; x < W; x += 16) this.world.add(this.add.image(x, H - 16, 'water').setOrigin(0).setAlpha(0.8));
     this.beam = this.add.graphics().setDepth(5);
-    this.status = this.add.text(GAME_WIDTH / 2, 20, '', { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.mist) }).setOrigin(0.5);
+    this.world.add(this.beam);
+    this.status = this.add.text(W / 2, this.oy - 12, '', { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.mist) }).setOrigin(0.5);
 
-    await titleCard(this, '1장 · 태초에 말씀이', '갈릴리 바닷가, 캄캄한 밤');
-    this.buildLevel();
-    await this.controls.modal(() =>
-      say(
-        this,
-        '나',
-        '캄캄한 밤이다. 바닷가 마을엔 불빛 하나 없다.',
-        '저 멀리서 가느다란 빛줄기가 새어 들어온다. 거울을 눌러 돌리면 빛이 꺾일 것 같다.',
-        '꺼진 등잔에 빛이 닿게 해 보자.',
-      ),
-    );
+    if (!resumed) {
+      await titleCard(this, '1장 · 태초에 말씀이', '갈릴리 바닷가, 캄캄한 밤');
+      this.buildLevel();
+      await this.controls.modal(async () => {
+        await say(this, '나', '캄캄한 밤이다. 바닷가 마을엔 불빛 하나 없다. 모래밭에 두루마리 하나가 떨어져 있다.');
+        await openScroll(this, [INTRO_REF]);
+        await say(
+          this,
+          '나',
+          '저 멀리서 가느다란 빛줄기가 새어 들어온다. 거울을 눌러 돌리면 빛이 꺾일 것 같다.',
+          '꺼진 등잔에 빛이 닿게 해 보자.',
+        );
+      });
+      Save.addVerses([INTRO_REF]);
+    } else {
+      this.buildLevel();
+    }
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (this.controls.busy || this.solving) return;
-      const gx = Math.floor((p.x - OX) / TILE);
-      const gy = Math.floor((p.y - OY) / TILE);
+      const gx = Math.floor((p.x - this.ox) / TILE);
+      const gy = Math.floor((p.y - this.oy) / TILE);
       if (toggleMirror(this.grid, gx, gy)) this.onChanged(gx, gy);
     });
   }
@@ -76,13 +106,15 @@ export class Ch1LightScene extends Phaser.Scene {
     this.grid = parseLevel(LEVELS[this.level]);
     this.grid.forEach((row, y) =>
       row.forEach((c, x) => {
-        const px = OX + x * TILE;
-        const py = OY + y * TILE;
+        const px = this.ox + x * TILE;
+        const py = this.oy + y * TILE;
         this.tiles.push(this.add.image(px, py, c === '#' ? 'tile-wall' : 'tile-floor').setOrigin(0));
         const top = this.tileFor(c);
         if (top) this.tiles.push(this.add.image(px, py, top).setOrigin(0).setDepth(6).setName(`${x},${y}`));
       }),
     );
+    this.world.add(this.tiles);
+    this.world.sort('depth');
     this.status.setText(`빛 퍼즐 ${this.level + 1}/${LEVELS.length} · 거울을 눌러 돌리기`);
     this.redraw();
   }
@@ -98,7 +130,7 @@ export class Ch1LightScene extends Phaser.Scene {
   private redraw() {
     const result = traceBeam(this.grid);
     this.beam.clear();
-    const pts = result.path.map((p) => ({ x: OX + p.x * TILE + 8, y: OY + p.y * TILE + 8 }));
+    const pts = result.path.map((p) => ({ x: this.ox + p.x * TILE + 8, y: this.oy + p.y * TILE + 8 }));
     for (const [w, color, alpha] of [
       [5, PAL.amber, 0.35],
       [2, PAL.gold, 1],
@@ -125,10 +157,16 @@ export class Ch1LightScene extends Phaser.Scene {
     this.solving = true;
     for (const key of result.lit) {
       const [x, y] = key.split(',').map(Number);
-      const h = this.add.image(OX + x * TILE + 8, OY + y * TILE + 4, 'halo').setBlendMode(Phaser.BlendModes.ADD).setDepth(7).setAlpha(0);
+      const h = this.add
+        .image(this.ox + x * TILE + 8, this.oy + y * TILE + 4, 'halo')
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(7)
+        .setAlpha(0);
       this.tweens.add({ targets: h, alpha: 0.8, duration: 400 });
       this.halos.push(h);
+      this.world.add(h);
     }
+    this.world.sort('depth');
     const last = this.level === LEVELS.length - 1;
     const target = last ? 0 : 1 - (this.level + 1) / LEVELS.length;
     await new Promise<void>((resolve) =>
@@ -141,25 +179,24 @@ export class Ch1LightScene extends Phaser.Scene {
         onComplete: () => resolve(),
       }),
     );
+    if (last) this.cameras.main.flash(500, ...rgb(PAL.parchment));
+
+    const ref = LEVEL_REFS[this.level];
+    await this.controls.modal(async () => {
+      if (last) await say(this, '나', '마을이 제 색을 되찾았다. 두루마리의 다음 줄을 마저 읽는다.');
+      await openScroll(this, [ref]);
+    });
+    Save.addVerses([ref]);
+
     if (last) {
-      this.cameras.main.flash(500, 255, 244, 214);
-      await this.finish();
+      this.cameras.main.fadeOut(600, ...rgb(PAL.ink));
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Campfire', { ch: 1, next: 'Ch6', flags: {} }));
       return;
     }
     this.level++;
-    this.time.delayedCall(500, () => {
+    this.time.delayedCall(300, () => {
       this.buildLevel();
       this.solving = false;
     });
-  }
-
-  private async finish() {
-    await this.controls.modal(async () => {
-      await say(this, '나', '마을이 제 색을 되찾았다. 바닷가에 누가 두고 간 두루마리가 있다.');
-      await openScroll(this, REFS);
-    });
-    Save.addVerses(REFS);
-    this.cameras.main.fadeOut(600, 26, 20, 35);
-    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Campfire', { ch: 1, next: 'Ch6', flags: {} }));
   }
 }

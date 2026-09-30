@@ -6,35 +6,37 @@ import { Scripture } from '../data/Scripture.ts';
 import { DIARY, diaryText } from '../diary/index.ts';
 import type { DiaryRecord } from '../state/save.ts';
 import { EMOTIONS } from '../state/types.ts';
-import { FONT_UI, GAME_HEIGHT, GAME_WIDTH, SIZE_UI } from './layout.ts';
+import { FONT_UI, SIZE_UI } from './layout.ts';
 import { openScroll } from './ScrollFrame.ts';
 import { DEPTH_UI, measurer } from './text.ts';
 import { wrapWords } from './wrap.ts';
 
-const PAGE = { x: 30, y: 12, w: 260, h: 156, pad: 14, line: 14 };
-
 export function showDiaryPage(scene: Phaser.Scene, rec: DiaryRecord, opts: { typing: boolean; closeLabel: string }): Promise<void> {
   const d = DIARY[rec.ch];
   const measure = measurer(FONT_UI, SIZE_UI);
-  const lines = wrapWords(diaryText(rec.ch, rec.emotion, rec.flags), PAGE.w - PAGE.pad * 2, measure);
+  const { width: W, height: H } = scene.scale;
+  const pw = Math.min(W - 16, 280);
+  const lines = wrapWords(diaryText(rec.ch, rec.emotion, rec.flags), pw - 28, measure);
+  const ph = Math.min(H - 16, 36 + lines.length * 14 + 40);
+  const PAGE = { x: Math.floor((W - pw) / 2), y: Math.floor((H - ph) / 2), w: pw, h: ph, pad: 14, line: 14 };
   const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH_UI + 8);
 
   const g = scene.add.graphics();
-  g.fillStyle(PAL.ink, 0.5).fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  g.fillStyle(PAL.ink, 0.5).fillRect(0, 0, W, H);
   g.fillStyle(PAL.bark).fillRect(PAGE.x - 3, PAGE.y - 3, PAGE.w + 6, PAGE.h + 6);
   g.fillStyle(PAL.white).fillRect(PAGE.x, PAGE.y, PAGE.w, PAGE.h);
   g.fillStyle(PAL.sky, 0.6);
-  for (let y = PAGE.y + 34; y < PAGE.y + PAGE.h - 30; y += PAGE.line) g.fillRect(PAGE.x + 6, y + 11, PAGE.w - 12, 1);
+  for (let y = PAGE.y + 36; y < PAGE.y + PAGE.h - 30; y += PAGE.line) g.fillRect(PAGE.x + 6, y + 11, PAGE.w - 12, 1);
   g.fillStyle(PAL.rose).fillRect(PAGE.x + 10, PAGE.y, 1, PAGE.h);
   root.add(g);
 
   const emotion = EMOTIONS.find((e) => e.key === rec.emotion)!.label;
   root.add(scene.add.text(PAGE.x + PAGE.pad, PAGE.y + 8, `${rec.ch}장 · ${d.title}`, { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.ink) }));
   root.add(
-    scene.add.text(PAGE.x + PAGE.w - PAGE.pad, PAGE.y + 8, `오늘의 마음: ${emotion}`, { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.wine) }).setOrigin(1, 0),
+    scene.add.text(PAGE.x + PAGE.w - PAGE.pad, PAGE.y + 20, `오늘의 마음: ${emotion}`, { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.wine) }).setOrigin(1, 0),
   );
   const bodies = lines.map((_, i) =>
-    scene.add.text(PAGE.x + PAGE.pad, PAGE.y + 34 + i * PAGE.line, '', { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.night) }),
+    scene.add.text(PAGE.x + PAGE.pad, PAGE.y + 36 + i * PAGE.line, '', { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.night) }),
   );
   root.add(bodies);
 

@@ -203,12 +203,15 @@ export function generateTextures(scene: Phaser.Scene) {
   );
 
   // 땅
-  canvasTexture(scene, 'grass', 16, 16, (ctx) => {
+  // 잔디는 대부분 민무늬로 두고, 풀포기와 꽃은 드문드문 섞는다(grassTile 참고).
+  canvasTexture(scene, 'grass', 16, 16, (ctx) => px(ctx, PAL.grass, 0, 0, 16, 16));
+  canvasTexture(scene, 'grass-tuft', 16, 16, (ctx) => {
     px(ctx, PAL.grass, 0, 0, 16, 16);
-    for (const [x, y] of [[2, 3], [9, 1], [13, 7], [5, 10], [11, 13], [1, 14], [7, 6]]) {
-      px(ctx, PAL.grassDark, x, y, 1, 2);
-      px(ctx, PAL.grassDark, x + 1, y + 1);
-    }
+    drawMap(ctx, 5, 8, ['.g..g', '.g.g.', 'g.gg.', '.ggg.'], { g: PAL.grassDark });
+  });
+  canvasTexture(scene, 'grass-flower', 16, 16, (ctx) => {
+    px(ctx, PAL.grass, 0, 0, 16, 16);
+    drawMap(ctx, 6, 6, ['.r.', 'ryr', '.r.', '.g.', '.g.'], { r: PAL.rose, y: PAL.gold, g: PAL.grassDark });
   });
   canvasTexture(scene, 'sand', 16, 16, (ctx) => {
     px(ctx, PAL.sand, 0, 0, 16, 16);
@@ -352,9 +355,15 @@ export function generateTextures(scene: Phaser.Scene) {
   });
   canvasTexture(scene, 'vignette', 320, 180, (ctx) => {
     const g = ctx.createRadialGradient(160, 90, 60, 160, 90, 200);
-    g.addColorStop(0, 'rgba(26,20,35,0)');
-    g.addColorStop(1, 'rgba(26,20,35,1)');
+    g.addColorStop(0, 'rgba(61,54,86,0)');
+    g.addColorStop(1, 'rgba(61,54,86,1)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 320, 180);
   });
+}
+
+/** 좌표마다 같은 결과가 나오는 잔디 타일 고르기. 풀포기 약 8%, 꽃 약 3%. */
+export function grassTile(x: number, y: number): string {
+  const h = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
+  return h < 0.03 ? 'grass-flower' : h < 0.11 ? 'grass-tuft' : 'grass';
 }
