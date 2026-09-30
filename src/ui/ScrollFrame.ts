@@ -1,10 +1,11 @@
 // 말씀 두루마리. 성경 본문은 이 프레임 안에서만 그린다(설계 원칙 2).
 // 줄바꿈은 띄어쓰기에서만, 넘치면 다음 페이지로 넘긴다. 글자는 한 자씩 나타나고 누르면 건너뛴다.
 import Phaser from 'phaser';
-import { css, PAL } from '../art/palette.ts';
+import { PAL } from '../art/palette.ts';
 import { Scripture } from '../data/Scripture.ts';
-import { FONT_SCRIPTURE, FONT_UI, scrollLayout, SIZE_SCRIPTURE, SIZE_UI } from './layout.ts';
-import { DEPTH_UI, measurer } from './text.ts';
+import { scrollLayout } from './layout.ts';
+import { drawPanel, nextArrow } from './panel.ts';
+import { bt, DEPTH_UI, measurer } from './text.ts';
 import { paginate, wrapWords } from './wrap.ts';
 
 interface Line {
@@ -17,7 +18,7 @@ const CHAR_DELAY = 28;
 
 export function openScroll(scene: Phaser.Scene, refs: string[]): Promise<void> {
   const SCROLL = scrollLayout(scene.scale.width, scene.scale.height);
-  const measure = measurer(FONT_SCRIPTURE, SIZE_SCRIPTURE);
+  const measure = measurer('body');
   const lines: Line[] = [];
   for (const ref of refs) {
     for (const verse of Scripture.resolve(ref)) {
@@ -37,21 +38,14 @@ export function openScroll(scene: Phaser.Scene, refs: string[]): Promise<void> {
   const dim = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, PAL.ink, 0.55).setOrigin(0);
   const g = scene.add.graphics();
   drawParchment(g, SCROLL);
-  const header = scene.add.text(SCROLL.x + SCROLL.padX, SCROLL.y + 7, '', {
-    fontFamily: FONT_UI,
-    fontSize: `${SIZE_UI}px`,
-    color: css(PAL.scrollEdge),
-  });
-  const pageInfo = scene.add
-    .text(SCROLL.x + SCROLL.width - SCROLL.padX, SCROLL.y + 7, '', { fontFamily: FONT_UI, fontSize: `${SIZE_UI}px`, color: css(PAL.scrollEdge) })
-    .setOrigin(1, 0);
-  const arrow = scene.add.triangle(SCROLL.x + SCROLL.width - 16, SCROLL.y + SCROLL.height - 10, 0, 0, 7, 0, 3.5, 4, PAL.scrollEdge).setVisible(false);
+  const header = bt(scene, SCROLL.x + SCROLL.padX, SCROLL.y + 7, '', PAL.rust);
+  const pageInfo = bt(scene, SCROLL.x + SCROLL.width - SCROLL.padX, SCROLL.y + 7, '', PAL.clay).setOrigin(1, 0);
+  const arrow = nextArrow(scene, SCROLL.x + SCROLL.width - 18, SCROLL.y + SCROLL.height - 12, PAL.rust).setVisible(false);
   root.add([dim, g, header, pageInfo, arrow]);
   root.setAlpha(0);
   scene.tweens.add({ targets: root, alpha: 1, duration: 180 });
-  const blink = scene.tweens.add({ targets: arrow, y: '+=2', duration: 400, yoyo: true, repeat: -1 });
 
-  let pageObjs: Phaser.GameObjects.Text[] = [];
+  let pageObjs: Phaser.GameObjects.BitmapText[] = [];
 
   return new Promise((resolve) => {
     let page = 0;
@@ -67,24 +61,16 @@ export function openScroll(scene: Phaser.Scene, refs: string[]): Promise<void> {
       header.setText(refsOnPage.map((r) => Scripture.label(r)).join(' · '));
       pageInfo.setText(pages.length > 1 ? `${page + 1}/${pages.length}` : '');
 
-      const bodies: Phaser.GameObjects.Text[] = [];
+      const bodies: Phaser.GameObjects.BitmapText[] = [];
       lines.forEach((line, i) => {
         const y = SCROLL.y + SCROLL.padTop + i * SCROLL.lineHeight;
         if (line.verseNum !== undefined) {
-          // 절 번호는 위첨자처럼 작게
-          const num = scene.add.text(SCROLL.x + SCROLL.padX, y - 1, String(line.verseNum), {
-            fontFamily: FONT_UI,
-            fontSize: `${SIZE_UI}px`,
-            color: css(PAL.ember),
-          });
+          // 절 번호는 위첨자처럼 작고 붉게
+          const num = bt(scene, SCROLL.x + SCROLL.padX, y - 1, String(line.verseNum), PAL.berry);
           pageObjs.push(num);
           root.add(num);
         }
-        const body = scene.add.text(SCROLL.x + SCROLL.padX + SCROLL.verseNumWidth, y, '', {
-          fontFamily: FONT_SCRIPTURE,
-          fontSize: `${SIZE_SCRIPTURE}px`,
-          color: css(PAL.ink),
-        });
+        const body = bt(scene, SCROLL.x + SCROLL.padX + SCROLL.verseNumWidth, y - 3, '', PAL.ink, 'body');
         pageObjs.push(body);
         bodies.push(body);
         root.add(body);
@@ -132,7 +118,6 @@ export function openScroll(scene: Phaser.Scene, refs: string[]): Promise<void> {
         alpha: 0,
         duration: 160,
         onComplete: () => {
-          blink.remove();
           root.destroy();
           resolve();
         },
@@ -156,15 +141,21 @@ export function openScroll(scene: Phaser.Scene, refs: string[]): Promise<void> {
 
 function drawParchment(g: Phaser.GameObjects.Graphics, SCROLL: ReturnType<typeof scrollLayout>) {
   const { x, y, width: w, height: h } = SCROLL;
-  // 두루마리 막대
-  g.fillStyle(PAL.wood).fillRect(x - 4, y - 3, w + 8, 5);
-  g.fillStyle(PAL.wood).fillRect(x - 4, y + h - 2, w + 8, 5);
-  g.fillStyle(PAL.gold).fillRect(x - 6, y - 4, 3, 7).fillRect(x + w + 3, y - 4, 3, 7);
-  g.fillStyle(PAL.gold).fillRect(x - 6, y + h - 3, 3, 7).fillRect(x + w + 3, y + h - 3, 3, 7);
-  // 양피지
-  g.fillStyle(PAL.parchmentDark).fillRect(x, y + 2, w, h - 4);
-  g.fillStyle(PAL.parchment).fillRect(x + 2, y + 3, w - 4, h - 6);
-  g.fillStyle(PAL.parchmentDark);
-  for (let i = 0; i < 18; i++) g.fillRect(x + 6 + ((i * 53) % (w - 12)), y + 8 + ((i * 29) % (h - 16)), 1, 1);
-  g.lineStyle(1, PAL.parchmentDark).lineBetween(x + SCROLL.padX, y + 20, x + w - SCROLL.padX, y + 20);
+  drawPanel(g, x, y + 1, w, h - 2, 'paper');
+  // 두루마리 막대(위·아래)와 금빛 손잡이
+  for (const ry of [y - 2, y + h - 3]) {
+    g.fillStyle(PAL.ink).fillRect(x - 5, ry - 1, w + 10, 7);
+    g.fillStyle(PAL.clay).fillRect(x - 4, ry, w + 8, 5);
+    g.fillStyle(PAL.tan).fillRect(x - 4, ry, w + 8, 1);
+    g.fillStyle(PAL.rust).fillRect(x - 4, ry + 4, w + 8, 1);
+    for (const hx of [x - 9, x + w + 5]) {
+      g.fillStyle(PAL.ink).fillRect(hx - 1, ry - 2, 6, 9);
+      g.fillStyle(PAL.gold).fillRect(hx, ry - 1, 4, 7);
+      g.fillStyle(PAL.orange).fillRect(hx + 2, ry - 1, 2, 7);
+    }
+  }
+  // 종이 결
+  g.fillStyle(PAL.peach);
+  for (let i = 0; i < 16; i++) g.fillRect(x + 6 + ((i * 53) % (w - 12)), y + 10 + ((i * 29) % (h - 20)), 2, 1);
+  g.fillStyle(PAL.peach).fillRect(x + SCROLL.padX, y + 20, w - SCROLL.padX * 2, 1);
 }

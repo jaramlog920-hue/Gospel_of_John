@@ -1,91 +1,144 @@
-// 게임 텍스트 말풍선과 선택지. 두루마리와 다른 모양(아래쪽 상자)으로 본문과 구분한다(설계 원칙 2).
+// 게임 텍스트 대화 상자와 선택지. 두루마리(본문)와 모양을 달리해서 구분한다(설계 원칙 2).
 import Phaser from 'phaser';
-import { css, PAL } from '../art/palette.ts';
-import { FONT_UI, SIZE_UI } from './layout.ts';
-import { DEPTH_UI, measurer, waitPress } from './text.ts';
+import { PAL } from '../art/palette.ts';
+import { drawPanel, nextArrow } from './panel.ts';
+import { bt, DEPTH_UI, measurer } from './text.ts';
 import { wrapWords } from './wrap.ts';
 
-const BOX = { x: 8, h: 50, pad: 8, lineHeight: 12 };
+const PAD = 8;
+const LINE = 13;
+const LINES = 3;
+const BOX_H = PAD * 2 + LINE * LINES - 2;
+const CHAR_DELAY = 22;
 
-function boxY(scene: Phaser.Scene) {
-  return scene.scale.height - BOX.h - 6;
+/** 대화 상자 위치: 화면 아래, 넓은 화면에서는 가운데 400px */
+function boxRect(scene: Phaser.Scene) {
+  const w = Math.min(scene.scale.width, 400) - 12;
+  return { x: Math.floor((scene.scale.width - w) / 2), y: scene.scale.height - BOX_H - 6, w, h: BOX_H };
 }
 
-function drawBox(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number) {
-  g.fillStyle(PAL.ink, 0.92).fillRoundedRect(x, y, w, h, 4);
-  g.lineStyle(1, PAL.mist).strokeRoundedRect(x + 0.5, y + 0.5, w - 1, h - 1, 4);
-}
-
-/** 말하는 사람 이름과 한 줄 이상의 게임 텍스트. 여러 문장은 차례로 보여준다. */
-export async function say(scene: Phaser.Scene, speaker: string | null, ...messages: string[]) {
-  const measure = measurer(FONT_UI, SIZE_UI);
-  const width = Math.min(scene.scale.width, 400) - BOX.x * 2;
-  const bx = Math.floor((scene.scale.width - width) / 2);
+/**
+ * 말하는 사람 이름과 게임 텍스트. 여러 문장은 차례로 보여준다.
+ * 글자가 한 자씩 나오고, 누르면 끝까지 한 번에 나온 뒤 ▼가 깜빡이면 다음으로 넘어간다.
+ */
+export function say(scene: Phaser.Scene, speaker: string | null, ...messages: string[]): Promise<void> {
+  const measure = measurer('ui');
+  const r = boxRect(scene);
   const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH_UI + 5);
-  const g = scene.add.graphics();
-  drawBox(g, bx, boxY(scene), width, BOX.h);
-  root.add(g);
+  root.add(drawPanel(scene.add.graphics(), r.x, r.y, r.w, r.h, 'dark'));
   if (speaker) {
-    const nameW = measure(speaker) + 10;
-    const ng = scene.add.graphics();
-    ng.fillStyle(PAL.teal).fillRoundedRect(bx + 6, boxY(scene) - 8, nameW, 13, 3);
-    root.add([ng, scene.add.text(bx + 11, boxY(scene) - 7, speaker, { fontFamily: FONT_UI, fontSize: `${SIZE_UI}px`, color: css(PAL.white) })]);
+    const nw = measure(speaker) + 12;
+    root.add(drawPanel(scene.add.graphics(), r.x + 6, r.y - 9, nw, 14, 'accent'));
+    root.add(bt(scene, r.x + 12, r.y - 8, speaker, PAL.white));
   }
-  const body = scene.add.text(bx + BOX.pad, boxY(scene) + BOX.pad, '', {
-    fontFamily: FONT_UI,
-    fontSize: `${SIZE_UI}px`,
-    color: css(PAL.white),
-    lineSpacing: 2,
-  });
-  root.add(body);
+  const body = bt(scene, r.x + PAD, r.y + PAD - 2, '', PAL.white).setLineSpacing(LINE - 12);
+  const arrow = nextArrow(scene, r.x + r.w - 14, r.y + r.h - 9).setVisible(false);
+  root.add([body, arrow]);
+
+  // 페이지 = 최대 3줄
+  const pages: string[][] = [];
   for (const msg of messages) {
-    const lines = wrapWords(msg, width - BOX.pad * 2, measure);
-    for (let i = 0; i < lines.length; i += 3) {
-      body.setText(lines.slice(i, i + 3).join('\n'));
-      await waitPress(scene);
-    }
+    const lines = wrapWords(msg, r.w - PAD * 2 - 8, measure);
+    for (let i = 0; i < lines.length; i += LINES) pages.push(lines.slice(i, i + LINES));
   }
-  root.destroy();
+
+  return new Promise((resolve) => {
+    let page = 0;
+    let shown = 0;
+    let full = '';
+    let timer: Phaser.Time.TimerEvent | null = null;
+    const finishTyping = () => {
+      timer?.remove();
+      timer = null;
+      body.setText(full);
+      arrow.setVisible(true);
+    };
+    const show = () => {
+      full = pages[page].join('\n');
+      const chars = [...full];
+      shown = 0;
+      arrow.setVisible(false);
+      timer = scene.time.addEvent({
+        delay: CHAR_DELAY,
+        loop: true,
+        callback: () => {
+          shown++;
+          body.setText(chars.slice(0, shown).join(''));
+          if (shown >= chars.length) finishTyping();
+        },
+      });
+    };
+    const advance = () => {
+      if (timer) return finishTyping();
+      page++;
+      if (page < pages.length) return show();
+      scene.input.off('pointerdown', advance);
+      scene.input.keyboard?.off('keydown', onKey);
+      root.destroy();
+      resolve();
+    };
+    const onKey = (e: KeyboardEvent) => (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyZ') && advance();
+    show();
+    scene.time.delayedCall(150, () => {
+      scene.input.on('pointerdown', advance);
+      scene.input.keyboard?.on('keydown', onKey);
+    });
+  });
 }
 
-/** 선택지. 정답·벌점 없음(설계 원칙 7). 고른 번호를 돌려준다. */
+/** 선택지. 정답·벌점 없음(설계 원칙 7). 고른 번호를 돌려준다. 줄 높이를 넉넉히 해 손가락으로 누르기 쉽게 한다. */
 export function choose(scene: Phaser.Scene, prompt: string | null, options: string[]): Promise<number> {
-  const measure = measurer(FONT_UI, SIZE_UI);
-  const rowH = 15;
-  const w = Math.max(...options.map((o) => measure(o)), prompt ? measure(prompt) : 0) + 34;
-  const h = options.length * rowH + (prompt ? rowH + 4 : 0) + 10;
-  const x = Math.round((scene.scale.width - w) / 2);
-  const y = Math.round((scene.scale.height - h) / 2);
+  const measure = measurer('ui');
+  const rowH = 20;
+  const { width: W, height: H } = scene.scale;
+  const w = Math.min(W - 16, Math.max(120, ...options.map((o) => measure(o) + 40), prompt ? measure(prompt) + 24 : 0));
+  const top = prompt ? 22 : 6;
+  const h = top + options.length * rowH + 6;
+  const x = Math.round((W - w) / 2);
+  const y = Math.round((H - h) / 2);
   const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH_UI + 6);
-  const g = scene.add.graphics();
-  drawBox(g, x, y, w, h);
-  root.add(g);
-  let oy = y + 6;
+  root.add(scene.add.rectangle(0, 0, W, H, PAL.ink, 0.35).setOrigin(0));
+  root.add(drawPanel(scene.add.graphics(), x, y, w, h, 'dark', 0.97));
   if (prompt) {
-    root.add(scene.add.text(x + 10, oy, prompt, { fontFamily: FONT_UI, fontSize: `${SIZE_UI}px`, color: css(PAL.gold) }));
-    oy += rowH + 4;
+    root.add(bt(scene, x + 10, y + 6, prompt, PAL.honey));
+    root.add(scene.add.rectangle(x + 8, y + 18, w - 16, 1, PAL.indigo).setOrigin(0));
   }
+  const bar = scene.add.rectangle(x + 4, 0, w - 8, rowH - 4, PAL.indigo).setOrigin(0);
   const cursor = scene.add.triangle(0, 0, 0, 0, 0, 6, 4, 3, PAL.gold).setOrigin(0);
-  root.add(cursor);
+  root.add([bar, cursor]);
   const rows = options.map((o, i) => {
-    const t = scene.add
-      .text(x + 18, oy + i * rowH, o, { fontFamily: FONT_UI, fontSize: `${SIZE_UI}px`, color: css(PAL.white) })
-      .setInteractive(new Phaser.Geom.Rectangle(-12, -2, w - 12, rowH), Phaser.Geom.Rectangle.Contains);
-    root.add(t);
-    return t;
+    const ry = y + top + i * rowH;
+    const label = bt(scene, x + 20, ry + 4, o, PAL.mist);
+    const hit = scene.add.zone(x, ry, w, rowH).setOrigin(0).setInteractive({ useHandCursor: true });
+    root.add([label, hit]);
+    return { label, hit, ry };
   });
   let sel = 0;
   const place = () => {
-    cursor.setPosition(x + 9, oy + sel * rowH + 3);
-    rows.forEach((r, i) => r.setColor(css(i === sel ? PAL.gold : PAL.white)));
+    const r = rows[sel];
+    bar.setY(r.ry + 2);
+    cursor.setPosition(x + 10, r.ry + 7);
+    rows.forEach((row, i) => row.label.setTint(i === sel ? PAL.white : PAL.steel));
   };
   place();
 
   return new Promise((resolve) => {
     const finish = (i: number) => {
       scene.input.keyboard?.off('keydown', onKey);
-      root.destroy();
-      resolve(i);
+      sel = i;
+      place();
+      // 고른 줄을 잠깐 반짝여서 눌렸다는 것을 보여 준다.
+      scene.tweens.add({
+        targets: bar,
+        alpha: 0.3,
+        duration: 60,
+        yoyo: true,
+        repeat: 1,
+        onComplete: () => {
+          root.destroy();
+          resolve(i);
+        },
+      });
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'ArrowUp' || e.code === 'KeyW') sel = (sel + options.length - 1) % options.length;
@@ -96,23 +149,26 @@ export function choose(scene: Phaser.Scene, prompt: string | null, options: stri
     scene.time.delayedCall(150, () => {
       scene.input.keyboard?.on('keydown', onKey);
       rows.forEach((r, i) => {
-        r.on('pointerover', () => ((sel = i), place()));
-        r.on('pointerdown', () => finish(i));
+        r.hit.on('pointerover', () => ((sel = i), place()));
+        r.hit.on('pointerdown', () => finish(i));
       });
     });
   });
 }
 
-/** 화면 가운데 짧은 제목 카드 */
+/** 화면 가운데 장 제목 카드 */
 export async function titleCard(scene: Phaser.Scene, title: string, sub: string) {
-  const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH_UI + 20);
   const { width: W, height: H } = scene.scale;
+  const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH_UI + 20);
   root.add(scene.add.rectangle(0, 0, W, H, PAL.ink).setOrigin(0));
-  root.add(scene.add.text(W / 2, H / 2 - 12, title, { fontFamily: 'Galmuri11', fontSize: '12px', color: css(PAL.gold) }).setOrigin(0.5));
-  root.add(scene.add.text(W / 2, H / 2 + 8, sub, { fontFamily: FONT_UI, fontSize: `${SIZE_UI}px`, color: css(PAL.mist) }).setOrigin(0.5));
+  const t = bt(scene, W / 2, H / 2 - 12, title, PAL.honey, 'body').setOrigin(0.5);
+  const line = scene.add.rectangle(W / 2, H / 2 + 2, 0, 1, PAL.rust);
+  const s = bt(scene, W / 2, H / 2 + 12, sub, PAL.steel).setOrigin(0.5);
+  root.add([t, line, s]);
   root.setAlpha(0);
   await new Promise<void>((r) => scene.tweens.add({ targets: root, alpha: 1, duration: 400, onComplete: () => r() }));
-  await new Promise<void>((r) => scene.time.delayedCall(1400, () => r()));
+  await new Promise<void>((r) => scene.tweens.add({ targets: line, width: Math.min(160, W - 40), duration: 500, onComplete: () => r() }));
+  await new Promise<void>((r) => scene.time.delayedCall(1000, () => r()));
   await new Promise<void>((r) => scene.tweens.add({ targets: root, alpha: 0, duration: 500, onComplete: () => r() }));
   root.destroy();
 }

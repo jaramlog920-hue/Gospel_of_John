@@ -2,14 +2,15 @@
 // 예수님과 성경 인물은 말하지 않는다. 사건은 두루마리 본문으로 보여주고, 대화는 가상 인물만 한다(설계 원칙 3·5).
 // 본문은 6:1–15를 끊지 않고 장면 흐름에 맞춰 이어서 보여준다.
 import Phaser from 'phaser';
-import { css, PAL, rgb } from '../art/palette.ts';
-import { grassTile } from '../art/textures.ts';
+import { PAL, rgb } from '../art/palette.ts';
+import { faceAndWalk, faceTo, grassTile } from '../art/textures.ts';
 import { Save } from '../state/save.ts';
 import { Controls } from '../ui/Controls.ts';
 import { choose, say, titleCard } from '../ui/Dialog.ts';
-import { FONT_UI } from '../ui/layout.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
-import { DEPTH_UI } from '../ui/text.ts';
+import { drawPanel } from '../ui/panel.ts';
+import { bt, DEPTH_UI, measurer, Tag } from '../ui/text.ts';
+import { wrapWords } from '../ui/wrap.ts';
 
 const WALK_W = 1280;
 const ARENA_X = WALK_W; // 배급 구역은 걷기 구역 오른쪽에 붙인다
@@ -69,9 +70,9 @@ export class Ch6FeedingScene extends Phaser.Scene {
   private talkers: Talker[] = [];
   private vignette!: Phaser.GameObjects.Image;
   private hungerBar!: Phaser.GameObjects.Rectangle;
-  private figText!: Phaser.GameObjects.Text;
-  private goalText!: Phaser.GameObjects.Text;
-  private hint!: Phaser.GameObjects.Text;
+  private figText!: Phaser.GameObjects.BitmapText;
+  private goalText!: Tag;
+  private hint!: Tag;
   private lastX = 0;
 
   // 배급 러시
@@ -119,7 +120,8 @@ export class Ch6FeedingScene extends Phaser.Scene {
     });
     this.W = this.scale.width;
     this.H = this.scale.height;
-    this.groundTop = Math.floor(this.H * 0.4);
+    // 세로 화면에서는 하늘을 줄이고 걷는 땅을 넓힌다.
+    this.groundTop = Math.floor(this.H * (this.H > this.W ? 0.3 : 0.4));
     this.yMin = this.groundTop + 10;
     this.yMax = this.H - 10;
 
@@ -167,24 +169,26 @@ export class Ch6FeedingScene extends Phaser.Scene {
     const { H, groundTop } = this;
     const totalW = WALK_W + this.W;
     const seaY = groundTop - 34;
-    // 하늘과 먼 바다, 언덕
-    this.add.rectangle(0, 0, totalW, seaY, PAL.sky).setOrigin(0);
-    // 파스텔 구름(멀리 있어서 천천히 지나간다)
-    const clouds = this.add.graphics().setScrollFactor(0.4, 1);
-    clouds.fillStyle(PAL.white);
-    for (let i = 0; i < 16; i++) {
-      const cx = i * 97 + ((i * 53) % 40);
-      const cy = 10 + ((i * 37) % Math.max(8, seaY - 26));
-      const w = 18 + (i % 3) * 8;
-      clouds.fillRect(cx, cy + 4, w, 6).fillRect(cx + 4, cy, w - 10, 5).fillRect(cx + w / 2, cy - 3, w / 3, 4);
+    // 하늘(위는 진하게, 수평선 쪽은 밝게)과 구름, 먼 바다, 언덕
+    const sky = this.add.graphics().setScrollFactor(0);
+    sky.fillStyle(PAL.sky).fillRect(0, 0, this.W, seaY);
+    sky.fillStyle(PAL.skyLight).fillRect(0, Math.floor(seaY * 0.55), this.W, seaY);
+    sky.fillStyle(PAL.skyLight);
+    for (let x = 0; x < this.W; x += 4) sky.fillRect(x, Math.floor(seaY * 0.55) - 1, 2, 1);
+    for (let i = 0; i < 12; i++) {
+      const cx = i * 130 + ((i * 53) % 60);
+      const cy = 6 + ((i * 37) % Math.max(8, seaY - 22));
+      this.add.image(cx, cy, 'cloud').setOrigin(0).setScrollFactor(0.3, 1).setScale(i % 3 === 0 ? 2 : 1);
     }
-    for (let x = 0; x < totalW; x += 16) this.add.image(x, seaY, 'water').setOrigin(0).setScrollFactor(0.6, 1);
+    const sea = this.add.tileSprite(0, seaY, totalW, 16, 'water').setOrigin(0).setScrollFactor(0.6, 1);
+    this.tweens.add({ targets: sea, tilePositionX: 32, duration: 4000, repeat: -1 });
     const hill = this.add.graphics();
-    hill.fillStyle(PAL.grassDeep);
-    for (let x = 0; x < totalW; x += 4) {
-      const h = 14 + Math.sin(x / 90) * 5 + Math.min(12, Math.max(0, (x - 900) / 25));
-      hill.fillRect(x, groundTop - h, 4, h + 2);
+    for (let x = 0; x < totalW; x += 2) {
+      const h = Math.round(14 + Math.sin(x / 90) * 5 + Math.min(12, Math.max(0, (x - 900) / 25)));
+      hill.fillStyle(PAL.teal).fillRect(x, groundTop - h, 2, h + 2);
+      hill.fillStyle(PAL.aqua).fillRect(x, groundTop - h, 2, 1);
     }
+    hill.fillStyle(PAL.pine).fillRect(0, groundTop - 2, totalW, 2);
     for (let y = groundTop; y < H; y += 16) for (let x = 0; x < totalW; x += 16) this.add.image(x, y, grassTile(x, y)).setOrigin(0);
     for (const [x, f] of [
       [210, 0.2],
@@ -196,6 +200,17 @@ export class Ch6FeedingScene extends Phaser.Scene {
       const y = this.yAt(f);
       this.add.image(x, y, 'rock').setDepth(y - 6);
     }
+    // 언덕 가장자리의 올리브 나무와 덤불
+    for (const x of [60, 300, 610, 820, 1000, 1120]) this.add.image(x, groundTop + 4, 'tree').setOrigin(0.5, 1).setDepth(groundTop);
+    for (const [x, f] of [
+      [120, 0.95],
+      [400, 0.05],
+      [760, 0.95],
+      [960, 0.5],
+    ]) {
+      const y = this.yAt(f);
+      this.add.image(x, y, 'bush').setDepth(y - 4);
+    }
 
     // 멀리 언덕 위의 빛: 조작할 수 없고 말하지 않는다(설계 원칙 3·5).
     this.add.image(1190, groundTop - 16, 'halo').setScale(1.4).setAlpha(0.7).setBlendMode(Phaser.BlendModes.ADD);
@@ -205,7 +220,8 @@ export class Ch6FeedingScene extends Phaser.Scene {
     for (let i = 0; i < 14; i++) {
       const s = this.add.sprite(120 + i * 80 + ((i * 37) % 40), this.yAt(((i * 53) % 90) / 90), `crowd${i % 6}`, 0);
       s.setDepth(s.y);
-      s.play(`crowd${i % 6}-walk`);
+      // 옆모습으로 오가며 걷는다.
+      s.play(`crowd${i % 6}-walk-side`);
       s.anims.setProgress((i % 4) / 4);
       this.tweens.add({
         targets: s,
@@ -213,8 +229,8 @@ export class Ch6FeedingScene extends Phaser.Scene {
         duration: 9000 + i * 400,
         yoyo: true,
         repeat: -1,
-        onYoyo: () => s.toggleFlipX(),
-        onRepeat: () => s.toggleFlipX(),
+        onYoyo: () => s.setFlipX(true),
+        onRepeat: () => s.setFlipX(false),
       });
     }
 
@@ -232,7 +248,7 @@ export class Ch6FeedingScene extends Phaser.Scene {
 
   private addTalker(key: string, x: number, y: number, talk: () => Promise<void>) {
     const sprite = this.add.sprite(x, y, key, 0).setDepth(y);
-    const mark = this.add.text(x, y - 20, '!', { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.ember) }).setOrigin(0.5).setDepth(900);
+    const mark = new Tag(this, x, y - 20, '!', { fg: PAL.white, bg: PAL.red, border: PAL.ink, originX: 0.5, originY: 1, padX: 3, padY: 2 }).setDepth(900);
     this.tweens.add({ targets: mark, y: y - 22, duration: 500, yoyo: true, repeat: -1 });
     const talker: Talker = {
       sprite,
@@ -252,8 +268,10 @@ export class Ch6FeedingScene extends Phaser.Scene {
 
   private async interact(t: Talker) {
     if (this.controls.busy || this.phase !== 'walk' || t.sprite === this.helper) return;
-    this.player.anims.stop();
-    this.player.setFlipX(t.sprite.x < this.player.x);
+    // 서로 마주 본다.
+    const left = t.sprite.x < this.player.x;
+    faceTo(this.player, 'side', left);
+    if (t.sprite !== this.helper) faceTo(t.sprite, 'side', !left);
     await this.controls.modal(() => t.talk());
   }
 
@@ -264,38 +282,32 @@ export class Ch6FeedingScene extends Phaser.Scene {
     this.vignette = this.add.image(0, 0, 'vignette').setOrigin(0).setDisplaySize(W, H).setScrollFactor(0).setDepth(DEPTH_UI - 10).setAlpha(0);
     const hud = <T extends Phaser.GameObjects.Components.ScrollFactor & Phaser.GameObjects.Components.Depth>(o: T): T =>
       o.setScrollFactor(0).setDepth(DEPTH_UI - 5) as T;
-    hud(this.add.rectangle(6, 6, 64, 12, PAL.ink, 0.85).setOrigin(0));
-    hud(this.add.text(9, 7, '배', { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.white) }));
-    hud(this.add.rectangle(22, 9, 45, 6, PAL.shadow).setOrigin(0));
-    this.hungerBar = hud(this.add.rectangle(22, 9, 45, 6, PAL.bread).setOrigin(0));
-    hud(this.add.image(80, 12, 'fig'));
-    this.figText = hud(this.add.text(86, 6, `×${this.figs}`, { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.ink) }));
-    this.goalText = hud(this.add.text(W - 6, 6, '', { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.ink) }).setOrigin(1, 0));
+    // 왼쪽 위: 배부름 게이지와 무화과
+    const panel = hud(this.add.graphics());
+    drawPanel(panel, 4, 4, 70, 16, 'dark');
+    drawPanel(panel, 78, 4, 30, 16, 'dark');
+    hud(this.add.image(13, 12, 'bread'));
+    hud(this.add.rectangle(22, 9, 48, 6, PAL.ink).setOrigin(0));
+    this.hungerBar = hud(this.add.rectangle(23, 10, 46, 4, PAL.honey).setOrigin(0));
+    hud(this.add.image(87, 12, 'fig'));
+    this.figText = hud(bt(this, 95, 7, `${this.figs}`, PAL.white));
+    // 오른쪽 위: 목표
+    this.goalText = hud(new Tag(this, W - 4, 4, ' ', { fg: PAL.white, bg: PAL.night, border: PAL.ink, originX: 1, padY: 4 }).setVisible(false));
     const walkHint = isPortraitScreen() ? '패드로 걷기 · 사람 옆에서 확인 버튼으로 말 걸기' : '누르고 있는 쪽으로 걷기 · 가까이서 사람을 눌러 말 걸기';
-    this.hint = hud(
-      this.add
-        .text(W / 2, H - 12, walkHint, {
-          fontFamily: FONT_UI,
-          fontSize: '10px',
-          color: css(PAL.white),
-          backgroundColor: css(PAL.ink),
-          padding: { x: 4, y: 2 },
-          align: 'center',
-          wordWrap: { width: W - 16 },
-        })
-        .setOrigin(0.5, 1)
-        .setAlpha(0.9),
-    );
+    this.hint = hud(new Tag(this, W / 2, H - 8, ' ', { fg: PAL.white, bg: PAL.ink, border: PAL.indigo, originX: 0.5, originY: 1, padY: 4 }));
+    this.showHint(walkHint);
     this.time.delayedCall(7000, () => this.phase === 'walk' && this.tweens.add({ targets: this.hint, alpha: 0, duration: 800 }));
   }
 
   /** 화면 아래 안내 문구를 바꿔 보여준다. */
   private showHint(text: string) {
     this.tweens.killTweensOf(this.hint);
+    // 좁은 화면에서는 띄어쓰기에서 줄을 나눈다.
+    const lines = wrapWords(text, this.W - 30, measurer('ui')).join('\n');
     // 배급·거두기 때는 사람들을 가리지 않게 하늘 쪽(위)에 둔다.
-    if (this.phase === 'walk') this.hint.setOrigin(0.5, 1).setY(this.H - 12);
-    else this.hint.setOrigin(0.5, 0).setY(24);
-    this.hint.setText(text).setAlpha(0.9);
+    if (this.phase === 'walk') this.hint.setPosition(this.W / 2, this.H - 8).setAnchor(0.5, 1);
+    else this.hint.setPosition(this.W / 2, 26).setAnchor(0.5, 0);
+    this.hint.setLabel(lines).setAlpha(1);
   }
 
   private setHunger(v: number) {
@@ -313,12 +325,11 @@ export class Ch6FeedingScene extends Phaser.Scene {
     if (pick === 0) {
       this.sharedFigs = true;
       this.figs = 1;
-      this.figText.setText(`×${this.figs}`);
+      this.figText.setText(`${this.figs}`);
       Save.setFlag('sharedFigs', true);
       await say(this, '우는 아이', '…고마워! 나도 너 따라갈래.');
       // 나눈 아이는 배급 러시에서 함께 떡을 나른다.
       const kid = this.talkers.find((t) => t.sprite.texture.key === 'kid-cry')!.sprite;
-      kid.play('kid-cry-walk');
       this.helper = kid;
     } else {
       await say(this, '나', '미안해… 나도 배가 고파.');
@@ -381,7 +392,7 @@ export class Ch6FeedingScene extends Phaser.Scene {
       this.add.image(s.x, s.y - 10, s.food).setDepth(s.y + 1);
     }
     // 빈손이면 바구니 위에 화살표를 띄워 어디로 갈지 알려 준다.
-    this.stationArrow = this.add.triangle(cx, cy - 26, 0, 0, 10, 0, 5, 6, PAL.ember).setDepth(960);
+    this.stationArrow = this.add.triangle(cx, cy - 26, 0, 0, 10, 0, 5, 6, PAL.red).setDepth(960);
     this.tweens.add({ targets: this.stationArrow, y: cy - 22, duration: 400, yoyo: true, repeat: -1 });
 
     const spots = [
@@ -411,7 +422,7 @@ export class Ch6FeedingScene extends Phaser.Scene {
 
     if (this.helper) {
       this.helper.setPosition(cx - 40, cy + 20).setVisible(true);
-      this.helper.play('kid-cry-walk');
+      faceTo(this.helper, 'down');
     }
   }
 
@@ -432,9 +443,14 @@ export class Ch6FeedingScene extends Phaser.Scene {
   }
 
   private updateGoal() {
-    if (this.phase === 'rush') this.goalText.setText(`나눈 음식 ${this.delivered}/${DELIVERY_GOAL}`);
-    else if (this.phase === 'gather') this.goalText.setText(`바구니 ${Math.floor(this.crumbCount / CRUMBS_PER_BASKET)}/${BASKETS}`);
-    else this.goalText.setText('');
+    const label =
+      this.phase === 'rush'
+        ? `나눈 음식 ${this.delivered}/${DELIVERY_GOAL}`
+        : this.phase === 'gather'
+          ? `바구니 ${Math.floor(this.crumbCount / CRUMBS_PER_BASKET)}/${BASKETS}`
+          : '';
+    this.goalText.setVisible(label !== '');
+    if (label) this.goalText.setLabel(label);
   }
 
   private setCarry(c: { food: Food; count: number } | null) {
@@ -488,7 +504,7 @@ export class Ch6FeedingScene extends Phaser.Scene {
     g.cooldown = 2500 + Math.random() * 3000;
     this.tweens.add({ targets: g.bubble, scale: 0, duration: 150, onComplete: () => g.bubble.setVisible(false) });
     for (const s of g.sprites) this.tweens.add({ targets: s, y: s.y - 3, duration: 90, yoyo: true });
-    const heart = this.add.text(g.x, g.y - 20, '♥', { fontFamily: FONT_UI, fontSize: '10px', color: css(PAL.ember) }).setOrigin(0.5).setDepth(960);
+    const heart = this.add.image(g.x, g.y - 20, 'heart').setDepth(960);
     this.tweens.add({ targets: heart, y: g.y - 34, alpha: 0, duration: 700, onComplete: () => heart.destroy() });
     this.delivered++;
     this.updateGoal();
@@ -505,9 +521,16 @@ export class Ch6FeedingScene extends Phaser.Scene {
     const station = this.stations.find((s) => s.food === target.want)!;
     const walk = (x: number, y: number) =>
       new Promise<void>((r) => {
-        h.setFlipX(x < h.x);
         const d = Phaser.Math.Distance.Between(h.x, h.y, x, y);
-        this.tweens.add({ targets: h, x, y, duration: (d / 50) * 1000, onUpdate: () => h.setDepth(h.y), onComplete: () => r() });
+        faceAndWalk(h, 'kid-cry', x - h.x, y - h.y);
+        this.tweens.add({
+          targets: h,
+          x,
+          y,
+          duration: (d / 50) * 1000,
+          onUpdate: () => h.setDepth(h.y),
+          onComplete: () => (faceAndWalk(h, 'kid-cry', 0, 0), r()),
+        });
       });
     (async () => {
       await walk(station.x - 12, station.y + 14);
@@ -599,12 +622,9 @@ export class Ch6FeedingScene extends Phaser.Scene {
       const maxX = this.phase === 'walk' ? WALK_W - 8 : ARENA_X + this.W - 8;
       p.x = Phaser.Math.Clamp(p.x + v.x * speed, minX, maxX);
       p.y = Phaser.Math.Clamp(p.y + v.y * speed, this.yMin, this.yMax);
-      if (v.x !== 0) p.setFlipX(v.x < 0);
-      if (!p.anims.isPlaying) p.play('player-walk');
-    } else if (p.anims.isPlaying) {
-      p.anims.stop();
-      p.setFrame(0);
-    }
+      // 걷는 방향에 따라 앞·뒤·옆모습이 바뀐다.
+      faceAndWalk(p, 'player', v.x, v.y);
+    } else faceAndWalk(p, 'player', 0, 0);
     p.setDepth(p.y);
     this.carryIcon.setPosition(p.x, p.y - 18);
 
@@ -613,11 +633,15 @@ export class Ch6FeedingScene extends Phaser.Scene {
       const moved = Math.abs(p.x - this.lastX);
       this.setHunger(Math.max(12, this.hunger - moved * 0.085));
       if (this.helper && this.helper.visible) {
+        // 무화과를 나눠 받은 아이가 뒤따라온다.
         const h = this.helper;
-        const tx = p.x - 18 * (p.flipX ? -1 : 1);
-        h.x += (tx - h.x) * 0.06;
-        h.y += (p.y + 4 - h.y) * 0.06;
-        h.setFlipX(p.flipX).setDepth(h.y);
+        const behind = p.flipX ? 18 : -18;
+        const dx = (p.x + behind - h.x) * 0.06;
+        const dy = (p.y + 4 - h.y) * 0.06;
+        h.x += dx;
+        h.y += dy;
+        h.setDepth(h.y);
+        faceAndWalk(h, 'kid-cry', Math.abs(dx) > 0.15 ? dx : 0, Math.abs(dy) > 0.15 ? dy : 0);
       }
       if (this.controls.actionPressed()) {
         const near = this.talkers.find((t) => Phaser.Math.Distance.Between(t.sprite.x, t.sprite.y, p.x, p.y) < 26 && t.sprite !== this.helper);
