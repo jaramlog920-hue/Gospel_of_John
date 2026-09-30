@@ -4,6 +4,7 @@ import { Scripture } from '../data/Scripture.ts';
 import { Save } from '../state/save.ts';
 import { FLOW } from '../story/flow.ts';
 import { startStep } from '../story/progress.ts';
+import { showSigns } from '../ui/SignsMenu.ts';
 import { drawPanel } from '../ui/panel.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
 import { bt, measurer, Tag, waitPress } from '../ui/text.ts';
@@ -86,8 +87,12 @@ export class TitleScene extends Phaser.Scene {
     prompt.destroy();
 
     const hasSave = Save.load(1) !== null && (Save.data.step > 0 || Save.data.chaptersDone.length > 0);
-    const options = hasSave ? ['이어하기', '처음부터', '일기장'] : ['시작하기'];
-    const pick = options[await this.menu(options, cy + 58)];
+    const options = hasSave ? ['이어하기', '처음부터', '일곱 표적', '일기장'] : ['시작하기', '일곱 표적'];
+    let pick = options[await this.menu(options, cy + 58)];
+    while (pick === '일곱 표적') {
+      await showSigns(this);
+      pick = options[await this.menu(options, cy + 58)];
+    }
     if (pick === '일기장') return this.scene.start('Diary');
     if (pick === '이어하기') return startStep(this, Math.min(Save.data.step, FLOW.length - 1));
     Save.startNew(1);
@@ -103,12 +108,14 @@ export class TitleScene extends Phaser.Scene {
     const bh = 18;
     const gap = 5;
     const x = Math.round((W - bw) / 2);
+    const group = this.add.container(0, 0);
     const buttons = options.map((label, i) => {
       const y = top + i * (bh + gap);
       const g = this.add.graphics();
       // 한글 글리프(9px)는 글자 상자 위에서 2px 아래에 있다. 버튼 안쪽(그림자 제외) 세로 가운데에 맞춘다.
       const text = bt(this, W / 2, y + Math.floor((bh - 9) / 2) - 2, label, PAL.white).setOrigin(0.5, 0);
       const hit = this.add.zone(x, y, bw, bh).setOrigin(0).setInteractive({ useHandCursor: true });
+      group.add([g, text, hit]);
       return { g, text, hit, y };
     });
     let sel = 0;
@@ -124,7 +131,14 @@ export class TitleScene extends Phaser.Scene {
         this.input.keyboard?.off('keydown', onKey);
         sel = i;
         paint();
-        this.tweens.add({ targets: buttons[i].text, alpha: 0.3, duration: 60, yoyo: true, repeat: 1, onComplete: () => resolve(i) });
+        this.tweens.add({
+          targets: buttons[i].text,
+          alpha: 0.3,
+          duration: 60,
+          yoyo: true,
+          repeat: 1,
+          onComplete: () => (group.destroy(), resolve(i)),
+        });
       };
       const onKey = (e: KeyboardEvent) => {
         if (e.code === 'ArrowUp') sel = (sel + options.length - 1) % options.length;

@@ -12,6 +12,7 @@ import { menuButtonInset } from '../ui/layout.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
 import { DEPTH_UI, measurer, Tag } from '../ui/text.ts';
 import { wrapWords } from '../ui/wrap.ts';
+import { MINIGAME_DONE } from '../minigames/MiniGame.ts';
 import { buildBackdrop, type Stage } from './backdrops.ts';
 
 const SPEED = 60; // 프레임마다 1칸(떨림 방지)
@@ -153,7 +154,9 @@ export class StoryScene extends Phaser.Scene {
         const pick = await choose(this, beat.choice.prompt, beat.choice.options);
         beat.choice.flags.forEach((f, k) => Save.setFlag(f, k === pick));
       }
+      if (beat.game?.when === 'before') await this.runGame(beat.game.key);
       await openScroll(this, [beat.ref], { noSkip: this.story.solemn });
+      if (beat.game?.when === 'after') await this.runGame(beat.game.key);
     });
     Save.addVerses([beat.ref]);
     this.next = i + 1;
@@ -162,6 +165,20 @@ export class StoryScene extends Phaser.Scene {
     this.updateProgress();
     if (this.next >= this.story.beats.length) return this.finish();
     this.busy = false;
+  }
+
+  /** 미니게임을 위에 띄우고, 끝나면 이 장면으로 돌아온다. */
+  private runGame(key: string): Promise<void> {
+    return new Promise((resolve) => {
+      this.game.events.once(MINIGAME_DONE, () => {
+        this.scene.resume();
+        this.cameras.main.fadeIn(300);
+        resolve();
+      });
+      this.scene.launch(key);
+      this.scene.bringToTop(key);
+      this.scene.pause();
+    });
   }
 
   /** 장면마다 작은 연출 */

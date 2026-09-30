@@ -5,9 +5,11 @@ import { DIARY } from '../diary/index.ts';
 import { Save } from '../state/save.ts';
 import { showDiaryPage } from '../ui/DiaryPage.ts';
 import { choose, say } from '../ui/Dialog.ts';
+import { showSigns } from '../ui/SignsMenu.ts';
 
 /** 메뉴를 열 수 있는 장면 */
-export const PAUSABLE = ['Ch1', 'Ch6', 'Story', 'Campfire'];
+export const MINIGAMES = ['Jars', 'Herd', 'Lantern', 'Chain', 'Runner', 'Pool', 'Row', 'Lamps', 'Blind', 'Voice', 'Stone', 'Scent', 'Wash', 'Net'];
+export const PAUSABLE = [...MINIGAMES, 'Ch1', 'Ch6', 'Story', 'Campfire'];
 
 export class PauseScene extends Phaser.Scene {
   constructor() {
@@ -20,9 +22,13 @@ export class PauseScene extends Phaser.Scene {
     this.add.rectangle(0, 0, W, H, PAL.ink, 0.6).setOrigin(0);
 
     for (;;) {
-      const pick = await choose(this, '잠깐 멈춤', ['계속하기', '일기장', '타이틀로']);
+      const pick = await choose(this, '잠깐 멈춤', ['계속하기', '일곱 표적', '일기장', '타이틀로']);
       if (pick === 0) break;
       if (pick === 1) {
+        await showSigns(this);
+        continue;
+      }
+      if (pick === 2) {
         const entries = [...Save.data.diary].sort((a, b) => a.ch - b.ch);
         if (entries.length === 0) {
           await say(this, null, '아직 쓴 일기가 없다. 표적을 보고 난 밤에 모닥불 앞에서 쓰게 된다.');
@@ -34,6 +40,8 @@ export class PauseScene extends Phaser.Scene {
       }
       const sure = await choose(this, '지금 장면은 처음부터 다시 해요', ['돌아가기', '타이틀로 가기']);
       if (sure === 1) {
+        // 미니게임 밑에 멈춰 있던 이야기 장면까지 모두 닫는다.
+        for (const key of PAUSABLE) if (key !== from) this.scene.stop(key);
         this.scene.stop(from);
         this.scene.start('Title');
         return;

@@ -6,6 +6,20 @@ import { Ch6FeedingScene } from './scenes/Ch6FeedingScene.ts';
 import { DiaryScene } from './scenes/DiaryScene.ts';
 import { EndScene } from './scenes/EndScene.ts';
 import { openPauseMenu, PauseScene } from './scenes/PauseScene.ts';
+import { BlindGame } from './minigames/BlindGame.ts';
+import { ChainGame } from './minigames/ChainGame.ts';
+import { HerdGame } from './minigames/HerdGame.ts';
+import { JarsGame } from './minigames/JarsGame.ts';
+import { LampsGame } from './minigames/LampsGame.ts';
+import { LanternGame } from './minigames/LanternGame.ts';
+import { NetGame } from './minigames/NetGame.ts';
+import { PoolGame } from './minigames/PoolGame.ts';
+import { RowGame } from './minigames/RowGame.ts';
+import { RunnerGame } from './minigames/RunnerGame.ts';
+import { ScentGame } from './minigames/ScentGame.ts';
+import { StoneGame } from './minigames/StoneGame.ts';
+import { VoiceGame } from './minigames/VoiceGame.ts';
+import { WashGame } from './minigames/WashGame.ts';
 import { StoryScene } from './scenes/StoryScene.ts';
 import { TitleScene } from './scenes/TitleScene.ts';
 import { computeView } from './ui/layout.ts';
@@ -32,7 +46,7 @@ const game = new Phaser.Game({
   backgroundColor: '#3d3656',
   scale: { mode: Phaser.Scale.NONE, zoom: view.zoom },
   input: { activePointers: 2 },
-  scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, StoryScene, CampfireScene, DiaryScene, EndScene, PauseScene],
+  scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, StoryScene, CampfireScene, DiaryScene, EndScene, PauseScene, JarsGame, HerdGame, LanternGame, ChainGame, RunnerGame, PoolGame, RowGame, LampsGame, BlindGame, VoiceGame, StoneGame, ScentGame, WashGame, NetGame],
 });
 
 /** 화면 크기가 바뀌면 다시 그릴 때 넘길 이어하기 정보를 씬이 줄 수 있다. */
