@@ -7,7 +7,7 @@ import { startStep } from '../story/progress.ts';
 import { showSigns } from '../ui/SignsMenu.ts';
 import { drawPanel } from '../ui/panel.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
-import { bt, measurer, Tag, waitPress } from '../ui/text.ts';
+import { bt, measurer, Tag } from '../ui/text.ts';
 
 // 타이틀 두루마리 구절. 본문에는 "와 보라"로 되어 있다(data/SOURCE.md).
 const TITLE_REF = 'john:4:28-29';
@@ -73,9 +73,6 @@ export class TitleScene extends Phaser.Scene {
       padY: 5,
     });
 
-    const prompt = bt(this, W / 2, L.promptY, '화면을 눌러 시작', PAL.ink).setOrigin(0.5);
-    this.tweens.add({ targets: prompt, alpha: 0.25, duration: 600, yoyo: true, repeat: -1, ease: 'Stepped', easeParams: [3] });
-
     let scrollOpen = false;
     chip.on('pointerdown', async (_p: unknown, _x: unknown, _y: unknown, e: Phaser.Types.Input.EventData) => {
       e.stopPropagation();
@@ -85,11 +82,7 @@ export class TitleScene extends Phaser.Scene {
       scrollOpen = false;
     });
 
-    // 첫 터치 뒤에 오디오를 켤 수 있다(브라우저 정책).
-    do await waitPress(this);
-    while (scrollOpen);
-    prompt.destroy();
-
+    // "화면을 눌러 시작" 없이 바로 메뉴를 보여 준다(사용자 요청 2026-10-04). 메뉴를 누르는 것이 첫 터치가 된다.
     let pick = options[await this.menu(options, L.menuTop, L.bh, L.gap)];
     while (pick === '일곱 표적') {
       await showSigns(this);
@@ -129,8 +122,7 @@ export class TitleScene extends Phaser.Scene {
     const subY = top + logoH + gaps[0] + subH / 2;
     const chipTop = top + logoH + gaps[0] + subH + gaps[1];
     const menuTop = chipTop + chipH + gaps[2];
-    const menuH = buttons * bh + (buttons - 1) * gap;
-    return { logoY, subY, chipTop, menuTop, bh, gap, promptY: Math.round(menuTop + menuH / 2) };
+    return { logoY, subY, chipTop, menuTop, bh, gap };
   }
 
   /** 세로로 쌓인 큰 버튼 메뉴. 방향키·확인 버튼·터치 모두 된다. */
