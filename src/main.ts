@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.ts';
 import { CampfireScene } from './scenes/CampfireScene.ts';
+import { ChapterQuizScene } from './scenes/ChapterQuizScene.ts';
 import { Ch1LightScene } from './scenes/Ch1LightScene.ts';
 import { Ch6FeedingScene } from './scenes/Ch6FeedingScene.ts';
 import { DiaryScene } from './scenes/DiaryScene.ts';
@@ -43,10 +44,10 @@ const game = new Phaser.Game({
   height: view.h,
   pixelArt: true,
   roundPixels: true,
-  backgroundColor: '#46606b',
+  backgroundColor: '#d9ecf3',
   scale: { mode: Phaser.Scale.NONE, zoom: view.zoom },
   input: { activePointers: 2 },
-  scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, StoryScene, CampfireScene, DiaryScene, EndScene, PauseScene, JarsGame, HerdGame, LanternGame, ChainGame, RunnerGame, PoolGame, RowGame, LampsGame, BlindGame, VoiceGame, StoneGame, ScentGame, WashGame, NetGame],
+  scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, StoryScene, CampfireScene, ChapterQuizScene, DiaryScene, EndScene, PauseScene, JarsGame, HerdGame, LanternGame, ChainGame, RunnerGame, PoolGame, RowGame, LampsGame, BlindGame, VoiceGame, StoneGame, ScentGame, WashGame, NetGame],
 });
 
 /** 화면 크기가 바뀌면 다시 그릴 때 넘길 이어하기 정보를 씬이 줄 수 있다. */
