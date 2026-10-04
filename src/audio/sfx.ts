@@ -87,6 +87,12 @@ export const Sfx = {
   scroll: () => (noise(320, { freq: 2600, to: 900, q: 0.8, volume: 0.05 }), pluck(587, 120, 0.035), pluck(880, 220, 0.03)),
   /** 두루마리를 덮을 때 */
   scrollClose: () => noise(200, { freq: 1200, to: 2400, q: 0.8, volume: 0.035 }),
+  /** 물방울 떨어지는 소리(9장 실로암). near: 0 멀다 ~ 1 아주 가깝다. pan: -1 왼쪽 ~ 1 오른쪽 */
+  drip: (near: number, pan: number) => {
+    const f = 700 + near * 900;
+    tone(f, 110, { type: 'sine', to: f * 1.8, pan, volume: 0.05 + near * 0.05 });
+    noise(140, { freq: 1500 + near * 1500, to: 600, q: 2, volume: 0.03 + near * 0.04 });
+  },
   /** 장 제목 카드 */
   chime: () => [587, 740, 880, 1175].forEach((f, i) => pluck(f, i * 140, 0.04)),
 };
