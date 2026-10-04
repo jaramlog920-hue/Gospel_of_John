@@ -641,11 +641,17 @@ export class Ch6FeedingScene extends Phaser.Scene {
       const moved = Math.abs(p.x - this.lastX);
       this.setHunger(Math.max(12, this.hunger - moved * 0.085));
       if (this.helper && this.helper.visible) {
-        // 무화과를 나눠 받은 아이가 뒤따라온다.
+        // 무화과를 나눠 받은 아이가 바로 뒤를 따라온다. 주인공보다 조금 빠른 일정한 속도로 따라붙는다
+        // (전에는 매 프레임 남은 거리의 6%씩 다가가서 늘 뒤처지고 기기 화면 속도마다 빠르기가 달랐다).
         const h = this.helper;
         const behind = p.flipX ? 18 : -18;
-        const dx = (p.x + behind - h.x) * 0.06;
-        const dy = (p.y + 4 - h.y) * 0.06;
+        const tx = p.x + behind - h.x;
+        const ty = p.y + 4 - h.y;
+        const dist = Math.hypot(tx, ty);
+        const stepMax = BASE_SPEED * 1.3 * (delta / 1000);
+        const k = dist > stepMax ? stepMax / dist : 1;
+        const dx = tx * k;
+        const dy = ty * k;
         h.x += dx;
         h.y += dy;
         h.setDepth(h.y);
