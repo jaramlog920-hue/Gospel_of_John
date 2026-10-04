@@ -5,6 +5,8 @@ import { Save } from '../state/save.ts';
 import { FLOW } from '../story/flow.ts';
 import { startStep } from '../story/progress.ts';
 import { showSigns } from '../ui/SignsMenu.ts';
+import { showSoundMenu } from '../ui/SoundMenu.ts';
+import { Sfx } from '../audio/sfx.ts';
 import { drawPanel } from '../ui/panel.ts';
 import { openScroll } from '../ui/ScrollFrame.ts';
 import { bt, measurer, Tag } from '../ui/text.ts';
@@ -30,7 +32,7 @@ export class TitleScene extends Phaser.Scene {
     const { width: W, height: H } = this.scale;
     const seaTop = Math.floor(H * 0.72);
     const hasSave = Save.load(1) !== null && (Save.data.step > 0 || Save.data.chaptersDone.length > 0);
-    const options = hasSave ? ['이어하기', '처음부터', '일곱 표적', '일기장'] : ['시작하기', '일곱 표적'];
+    const options = hasSave ? ['이어하기', '처음부터', '일곱 표적', '일기장', '소리 설정'] : ['시작하기', '일곱 표적', '소리 설정'];
     const L = this.layout(options.length);
 
     // 해 질 녘의 하늘: 연하늘에서 수평선의 살구빛으로(파스텔, 사용자 요청 2026-10-04). 띠 경계는 디더링으로 섞는다.
@@ -84,9 +86,10 @@ export class TitleScene extends Phaser.Scene {
 
     // "화면을 눌러 시작" 없이 바로 메뉴를 보여 준다(사용자 요청 2026-10-04). 메뉴를 누르는 것이 첫 터치가 된다.
     let pick = options[await this.menu(options, L.menuTop, L.bh, L.gap)];
-    while (pick === '일곱 표적') {
-      await showSigns(this);
-      pick = options[await this.menu(options, L.menuTop, L.bh, L.gap)];
+    while (pick === '일곱 표적' || pick === '소리 설정') {
+      if (pick === '일곱 표적') await showSigns(this);
+      else await showSoundMenu(this);
+      pick = options[await this.menu(options, L.menuTop, L.bh, L.gap, options.indexOf(pick))];
     }
     if (pick === '일기장') return this.scene.start('Diary');
     if (pick === '이어하기') return startStep(this, Math.min(Save.data.step, FLOW.length - 1));
@@ -126,7 +129,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   /** 세로로 쌓인 큰 버튼 메뉴. 방향키·확인 버튼·터치 모두 된다. */
-  private menu(options: string[], top: number, bh = 22, gap = 8): Promise<number> {
+  private menu(options: string[], top: number, bh = 22, gap = 8, start = 0): Promise<number> {
     const { width: W } = this.scale;
     const measure = measurer('ui');
     const bw = Math.min(W - 32, Math.max(128, ...options.map((o) => measure(o) + 48)));
@@ -141,7 +144,7 @@ export class TitleScene extends Phaser.Scene {
       group.add([g, text, hit]);
       return { g, text, hit, y };
     });
-    let sel = 0;
+    let sel = Math.max(0, start);
     const paint = () =>
       buttons.forEach((b, i) => {
         b.g.clear();
@@ -154,6 +157,7 @@ export class TitleScene extends Phaser.Scene {
         this.input.keyboard?.off('keydown', onKey);
         sel = i;
         paint();
+        Sfx.select();
         this.tweens.add({
           targets: buttons[i].text,
           alpha: 0.3,
@@ -167,6 +171,8 @@ export class TitleScene extends Phaser.Scene {
         if (e.code === 'ArrowUp') sel = (sel + options.length - 1) % options.length;
         else if (e.code === 'ArrowDown') sel = (sel + 1) % options.length;
         else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyZ') return finish(sel);
+        else return;
+        Sfx.move();
         paint();
       };
       this.time.delayedCall(150, () => {

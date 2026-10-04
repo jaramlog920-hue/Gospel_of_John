@@ -1,6 +1,7 @@
 // 게임 텍스트 대화 상자와 선택지. 두루마리(본문)와 모양을 달리해서 구분한다(설계 원칙 2).
 import Phaser from 'phaser';
 import { PAL } from '../art/palette.ts';
+import { Sfx } from '../audio/sfx.ts';
 import { drawPanel, nextArrow } from './panel.ts';
 import { bt, DEPTH_UI, measurer } from './text.ts';
 import { wrapWords } from './wrap.ts';
@@ -70,6 +71,7 @@ export function say(scene: Phaser.Scene, speaker: string | null, ...messages: st
     };
     const advance = () => {
       if (timer) return finishTyping();
+      Sfx.next();
       page++;
       if (page < pages.length) return show();
       scene.input.off('pointerdown', advance);
@@ -86,8 +88,11 @@ export function say(scene: Phaser.Scene, speaker: string | null, ...messages: st
   });
 }
 
-/** 선택지. 정답·벌점 없음(설계 원칙 7). 고른 번호를 돌려준다. 줄 높이를 넉넉히 해 손가락으로 누르기 쉽게 한다. */
-export function choose(scene: Phaser.Scene, prompt: string | null, options: string[]): Promise<number> {
+/**
+ * 선택지. 정답·벌점 없음(설계 원칙 7). 고른 번호를 돌려준다. 줄 높이를 넉넉히 해 손가락으로 누르기 쉽게 한다.
+ * start: 처음에 고르고 있을 줄(같은 메뉴를 다시 열 때 자리를 지킨다).
+ */
+export function choose(scene: Phaser.Scene, prompt: string | null, options: string[], start = 0): Promise<number> {
   const measure = measurer('ui');
   const rowH = 20;
   const { width: W, height: H } = scene.scale;
@@ -113,7 +118,7 @@ export function choose(scene: Phaser.Scene, prompt: string | null, options: stri
     root.add([label, hit]);
     return { label, hit, ry };
   });
-  let sel = 0;
+  let sel = Phaser.Math.Clamp(start, 0, options.length - 1);
   const place = () => {
     const r = rows[sel];
     bar.setY(r.ry + 2);
@@ -127,6 +132,7 @@ export function choose(scene: Phaser.Scene, prompt: string | null, options: stri
       scene.input.keyboard?.off('keydown', onKey);
       sel = i;
       place();
+      Sfx.select();
       // 고른 줄을 잠깐 반짝여서 눌렸다는 것을 보여 준다.
       scene.tweens.add({
         targets: bar,
@@ -144,6 +150,8 @@ export function choose(scene: Phaser.Scene, prompt: string | null, options: stri
       if (e.code === 'ArrowUp' || e.code === 'KeyW') sel = (sel + options.length - 1) % options.length;
       else if (e.code === 'ArrowDown' || e.code === 'KeyS') sel = (sel + 1) % options.length;
       else if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyZ') return finish(sel);
+      else return;
+      Sfx.move();
       place();
     };
     scene.time.delayedCall(150, () => {
@@ -167,6 +175,7 @@ export async function titleCard(scene: Phaser.Scene, title: string, sub: string)
   const s = bt(scene, W / 2, H / 2 + 14, sub, PAL.steel).setOrigin(0.5);
   root.add([t, line, s]);
   root.setAlpha(0);
+  Sfx.chime();
   await new Promise<void>((r) => scene.tweens.add({ targets: root, alpha: 1, duration: 400, onComplete: () => r() }));
   await new Promise<void>((r) => scene.tweens.add({ targets: line, scaleX: 1, duration: 500, ease: 'Cubic.Out', onComplete: () => r() }));
   await new Promise<void>((r) => scene.time.delayedCall(1000, () => r()));

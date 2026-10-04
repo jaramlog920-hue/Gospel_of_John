@@ -3,6 +3,7 @@
 // 맞히면 근거 절을 두루마리로 연다. 틀려도 벌칙 없이 다시 고르고, 두 번 틀리면 두루마리로 근거를 먼저 보여 준다.
 import Phaser from 'phaser';
 import { PAL, rgb } from '../art/palette.ts';
+import { Sfx } from '../audio/sfx.ts';
 import { Save } from '../state/save.ts';
 import { goNext } from '../story/progress.ts';
 import { quizFlag, quizzesOf, type ChoiceQuiz, type OrderQuiz } from '../story/chapterQuiz.ts';
@@ -44,6 +45,7 @@ export class ChapterQuizScene extends Phaser.Scene {
       await say(this, who, q.question);
       const pick = await choose(this, q.title, q.options);
       if (pick === q.answer) break;
+      Sfx.miss();
       misses++;
       await say(this, '나', AGAIN);
       if (misses === 2) {
@@ -69,6 +71,7 @@ export class ChapterQuizScene extends Phaser.Scene {
         else left.splice(pick, 1);
       }
       if (ok) break;
+      Sfx.miss();
       misses++;
       await say(this, '나', AGAIN);
       if (misses === 2) {

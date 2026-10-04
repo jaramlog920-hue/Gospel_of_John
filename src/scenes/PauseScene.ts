@@ -6,6 +6,7 @@ import { Save } from '../state/save.ts';
 import { showDiaryPage } from '../ui/DiaryPage.ts';
 import { choose, say } from '../ui/Dialog.ts';
 import { showSigns } from '../ui/SignsMenu.ts';
+import { showSoundMenu } from '../ui/SoundMenu.ts';
 
 /** 메뉴를 열 수 있는 장면 */
 export const MINIGAMES = ['Jars', 'Herd', 'Lantern', 'Chain', 'Runner', 'Pool', 'Row', 'Lamps', 'Blind', 'Voice', 'Stone', 'Scent', 'Wash', 'Net'];
@@ -22,10 +23,14 @@ export class PauseScene extends Phaser.Scene {
     this.add.rectangle(0, 0, W, H, PAL.ink, 0.6).setOrigin(0);
 
     for (;;) {
-      const pick = await choose(this, '잠깐 멈춤', ['계속하기', '일곱 표적', '일기장', '타이틀로']);
+      const pick = await choose(this, '잠깐 멈춤', ['계속하기', '일곱 표적', '일기장', '소리 설정', '타이틀로']);
       if (pick === 0) break;
       if (pick === 1) {
         await showSigns(this);
+        continue;
+      }
+      if (pick === 3) {
+        await showSoundMenu(this);
         continue;
       }
       if (pick === 2) {

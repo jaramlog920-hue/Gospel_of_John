@@ -1,4 +1,7 @@
 import Phaser from 'phaser';
+import { unlockAudio } from './audio/engine.ts';
+import { Music } from './audio/music.ts';
+import { attachSceneMusic } from './audio/sceneMusic.ts';
 import { BootScene } from './scenes/BootScene.ts';
 import { CampfireScene } from './scenes/CampfireScene.ts';
 import { ChapterQuizScene } from './scenes/ChapterQuizScene.ts';
@@ -49,6 +52,10 @@ const game = new Phaser.Game({
   input: { activePointers: 2 },
   scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, StoryScene, CampfireScene, ChapterQuizScene, DiaryScene, EndScene, PauseScene, JarsGame, HerdGame, LanternGame, ChainGame, RunnerGame, PoolGame, RowGame, LampsGame, BlindGame, VoiceGame, StoneGame, ScentGame, WashGame, NetGame],
 });
+
+// 배경음: 장면마다 곡을 고르고, 첫 터치에서 소리를 켠다(브라우저 정책).
+game.events.once('ready', () => attachSceneMusic(game));
+unlockAudio(() => Music.kick());
 
 /** 화면 크기가 바뀌면 다시 그릴 때 넘길 이어하기 정보를 씬이 줄 수 있다. */
 export interface Checkpointed {

@@ -2,6 +2,7 @@
 // 줄바꿈은 띄어쓰기에서만, 넘치면 다음 페이지로 넘긴다. 글자는 한 자씩 나타나고 누르면 건너뛴다.
 import Phaser from 'phaser';
 import { PAL } from '../art/palette.ts';
+import { Sfx } from '../audio/sfx.ts';
 import { Scripture } from '../data/Scripture.ts';
 import { scrollLayout } from './layout.ts';
 import { drawPanel, nextArrow } from './panel.ts';
@@ -45,6 +46,7 @@ export function openScroll(scene: Phaser.Scene, refs: string[], opts: { noSkip?:
   root.add([dim, g, header, pageInfo, arrow]);
   root.setAlpha(0);
   scene.tweens.add({ targets: root, alpha: 1, duration: 180 });
+  Sfx.scroll();
 
   let pageObjs: Phaser.GameObjects.BitmapText[] = [];
 
@@ -110,10 +112,12 @@ export function openScroll(scene: Phaser.Scene, refs: string[], opts: { noSkip?:
       }
       page++;
       if (page < pages.length) {
+        Sfx.next();
         showPage();
         return;
       }
       cleanup();
+      Sfx.scrollClose();
       scene.tweens.add({
         targets: root,
         alpha: 0,
