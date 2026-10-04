@@ -30,7 +30,8 @@ export function scrollLayout(w: number, h: number) {
   const height = h - 20;
   const padX = 12;
   const padTop = 24;
-  const lineHeight = 15;
+  // 줄 사이를 넉넉히(17) 두어 읽기 쉽게 한다(사용자 요청 2026-10-04). 한 쪽에 8줄이 안 들어가는 낮은 화면만 15로 좁힌다.
+  const lineHeight = Math.floor((height - padTop - 12) / 17) >= 8 ? 17 : 15;
   const verseNumWidth = 14;
   return {
     x: Math.floor((w - width) / 2),

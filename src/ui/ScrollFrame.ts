@@ -37,7 +37,8 @@ export function openScroll(scene: Phaser.Scene, refs: string[], opts: { noSkip?:
 
   const depth = DEPTH_UI + 10;
   const root = scene.add.container(0, 0).setScrollFactor(0).setDepth(depth);
-  const dim = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, PAL.ink, 0.55).setOrigin(0);
+  // 뒤 화면이 비쳐 산만하지 않게 진하게 가린다.
+  const dim = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, PAL.ink, 0.8).setOrigin(0);
   const g = scene.add.graphics();
   drawParchment(g, SCROLL);
   const header = bt(scene, SCROLL.x + SCROLL.padX, SCROLL.y + 7, '', PAL.rust);
@@ -159,8 +160,6 @@ function drawParchment(g: Phaser.GameObjects.Graphics, SCROLL: ReturnType<typeof
       g.fillStyle(PAL.orange).fillRect(hx + 2, ry - 1, 2, 7);
     }
   }
-  // 종이 결
-  g.fillStyle(PAL.peach);
-  for (let i = 0; i < 16; i++) g.fillRect(x + 6 + ((i * 53) % (w - 12)), y + 10 + ((i * 29) % (h - 20)), 2, 1);
+  // 제목 밑줄. 글자 사이에 흩어져 읽기를 방해하던 종이 결 점은 뺐다.
   g.fillStyle(PAL.peach).fillRect(x + SCROLL.padX, y + 20, w - SCROLL.padX * 2, 1);
 }
