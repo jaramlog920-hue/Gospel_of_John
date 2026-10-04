@@ -19,8 +19,8 @@ const width = (s: string) => [...s].reduce((n, ch) => n + (ui.get(ch.codePointAt
 const MAX_OPTION = PORTRAIT_MIN.w - 16 - 40;
 
 describe('장 퀴즈', () => {
-  it('1–21장 모두 장마다 세 문제, id가 겹치지 않는다', () => {
-    for (let c = 1; c <= 21; c++) expect(quizzesOf(c)).toHaveLength(3);
+  it('1–21장 모두 장마다 다섯 문제, id가 겹치지 않는다', () => {
+    for (let c = 1; c <= 21; c++) expect(quizzesOf(c)).toHaveLength(5);
     expect(new Set(CHAPTER_QUIZ.map((q) => q.id)).size).toBe(CHAPTER_QUIZ.length);
   });
 
