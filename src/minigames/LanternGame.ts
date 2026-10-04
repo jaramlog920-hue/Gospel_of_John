@@ -61,8 +61,8 @@ export class LanternGame extends MiniGame {
       const tex = this.textures.createCanvas(key, w, h)!;
       const ctx = tex.getContext();
       const g = ctx.createRadialGradient(w / 2, h / 2, 18, w / 2, h / 2, 44);
-      g.addColorStop(0, 'rgba(46,34,47,0)');
-      g.addColorStop(1, 'rgba(46,34,47,0.95)');
+      g.addColorStop(0, 'rgba(47,75,85,0)');
+      g.addColorStop(1, 'rgba(47,75,85,0.9)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
       tex.refresh();

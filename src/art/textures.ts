@@ -546,8 +546,8 @@ export function generateTextures(scene: Phaser.Scene) {
   });
   canvasTexture(scene, 'vignette', 320, 180, (ctx) => {
     const g = ctx.createRadialGradient(160, 90, 60, 160, 90, 200);
-    g.addColorStop(0, 'rgba(46,34,47,0)');
-    g.addColorStop(1, 'rgba(46,34,47,1)');
+    g.addColorStop(0, 'rgba(47,75,85,0)');
+    g.addColorStop(1, 'rgba(47,75,85,1)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 320, 180);
   });

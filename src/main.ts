@@ -43,7 +43,7 @@ const game = new Phaser.Game({
   height: view.h,
   pixelArt: true,
   roundPixels: true,
-  backgroundColor: '#3d3656',
+  backgroundColor: '#46606b',
   scale: { mode: Phaser.Scale.NONE, zoom: view.zoom },
   input: { activePointers: 2 },
   scene: [BootScene, TitleScene, Ch1LightScene, Ch6FeedingScene, StoryScene, CampfireScene, DiaryScene, EndScene, PauseScene, JarsGame, HerdGame, LanternGame, ChainGame, RunnerGame, PoolGame, RowGame, LampsGame, BlindGame, VoiceGame, StoneGame, ScentGame, WashGame, NetGame],

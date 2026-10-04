@@ -33,9 +33,9 @@ export class TitleScene extends Phaser.Scene {
     const options = hasSave ? ['이어하기', '처음부터', '일곱 표적', '일기장'] : ['시작하기', '일곱 표적'];
     const L = this.layout(options.length);
 
-    // 해 진 뒤의 하늘: 남색에서 수평선의 자주빛으로. 띠 경계는 디더링으로 섞는다.
+    // 해 질 녘의 하늘: 연하늘에서 수평선의 살구빛으로(파스텔, 사용자 요청 2026-10-04). 띠 경계는 디더링으로 섞는다.
     const sky = this.add.graphics();
-    const bands = [PAL.dusk, PAL.dusk, PAL.dusk, PAL.indigo, PAL.grape, PAL.purple];
+    const bands = [PAL.skyLight, PAL.skyLight, PAL.sky, PAL.lilac, PAL.lavender, PAL.peach];
     const bandH = Math.ceil(seaTop / bands.length);
     bands.forEach((c, i) => sky.fillStyle(c).fillRect(0, i * bandH, W, bandH));
     bands.forEach((c, i) => {
@@ -47,21 +47,21 @@ export class TitleScene extends Phaser.Scene {
       for (let x = 1; x < W; x += 4) sky.fillRect(x, i * bandH, 1, 1);
     });
     for (let i = 0; i < 46; i++) {
-      const star = this.add.rectangle((i * 83) % W, (i * 37) % Math.floor(seaTop * 0.6), 1, 1, i % 7 === 0 ? PAL.honey : PAL.white);
+      const star = this.add.rectangle((i * 83) % W, (i * 37) % Math.floor(seaTop * 0.6), 1, 1, PAL.white);
       this.tweens.add({ targets: star, alpha: 0.15, duration: 700 + (i % 5) * 300, yoyo: true, repeat: -1, delay: (i * 97) % 900 });
     }
     // 먼 언덕
-    const hills = this.add.graphics().fillStyle(PAL.plum);
+    const hills = this.add.graphics().fillStyle(PAL.mauve);
     for (let x = 0; x < W; x += 2) hills.fillRect(x, seaTop - 6 - Math.round(4 + Math.sin(x / 23) * 3 + Math.sin(x / 7) * 1), 2, 12);
     // 움직이는 밤바다
-    const sea = this.add.tileSprite(0, seaTop, W, H - seaTop, 'water').setOrigin(0).setTint(PAL.indigo);
+    const sea = this.add.tileSprite(0, seaTop, W, H - seaTop, 'water').setOrigin(0).setTint(PAL.navy);
     this.tweens.add({ targets: sea, tilePositionX: 32, duration: 4000, repeat: -1 });
     this.add.rectangle(0, seaTop, W, 1, PAL.lilac).setOrigin(0).setAlpha(0.7);
 
     // 로고 → 부제는 가깝게, 부제 → 두루마리 칩은 조금 띄우고, 칩 → 메뉴는 더 넓게(묶음이 구분되게)
     this.add.image(W / 2, L.logoY, 'halo').setScale(2.6).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD);
     outlinedText(this, W / 2, L.logoY, '일곱 표적', PAL.honey, 2);
-    bt(this, W / 2, L.subY, '와서 보라', PAL.cream, 'body').setOrigin(0.5);
+    bt(this, W / 2, L.subY, '와서 보라', PAL.night, 'body').setOrigin(0.5);
 
     // 작은 두루마리 칩: 참조 표기만 보여주고, 누르면 본문 원문이 열린다.
     const chip = new Tag(this, W / 2, L.chipTop, `두루마리 · ${Scripture.label(TITLE_REF)}`, {
@@ -73,7 +73,7 @@ export class TitleScene extends Phaser.Scene {
       padY: 5,
     });
 
-    const prompt = bt(this, W / 2, L.promptY, '화면을 눌러 시작', PAL.white).setOrigin(0.5);
+    const prompt = bt(this, W / 2, L.promptY, '화면을 눌러 시작', PAL.ink).setOrigin(0.5);
     this.tweens.add({ targets: prompt, alpha: 0.25, duration: 600, yoyo: true, repeat: -1, ease: 'Stepped', easeParams: [3] });
 
     let scrollOpen = false;
