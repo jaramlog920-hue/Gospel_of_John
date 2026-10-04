@@ -77,7 +77,8 @@ export class JarsGame extends MiniGame {
       // 아귀까지
       Sfx.pour();
       const w = this.waters[this.filled];
-      this.tweens.add({ targets: w, height: 30, duration: 400 });
+      // height만 바꾸면 아래 기준점이 갱신되지 않아 물이 아래로 자란다. setSize로 바닥에서 위로 채운다.
+      this.tweens.addCounter({ from: 0, to: 30, duration: 400, onUpdate: (tw) => w.setSize(8, Math.round(tw.getValue() ?? 0)) });
       this.tweens.add({ targets: this.jars[this.filled], y: this.jars[this.filled].y - 2, duration: 80, yoyo: true });
       this.filled++;
       this.speed += 0.12;
@@ -115,7 +116,7 @@ export class JarsGame extends MiniGame {
     this.level += this.dir * this.speed * (delta / 1000);
     if (this.level >= 1) (this.level = 1), (this.dir = -1);
     if (this.level <= 0) (this.level = 0), (this.dir = 1);
-    this.meter.height = Math.round(this.meterH * this.level);
+    this.meter.setSize(8, Math.round(this.meterH * this.level));
     this.meter.setFillStyle(this.level >= 0.86 ? PAL.foam : PAL.sky);
   }
 }
