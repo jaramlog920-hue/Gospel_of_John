@@ -3,13 +3,16 @@
 import Phaser from 'phaser';
 import { PAL } from '../art/palette.ts';
 
-export type PanelKind = 'dark' | 'paper' | 'light' | 'accent';
+export type PanelKind = 'dark' | 'paper' | 'light' | 'accent' | 'soft' | 'softOn';
 
 const KINDS: Record<PanelKind, { fill: number; edge: number; hi: number; shadow: number }> = {
   dark: { fill: PAL.night, edge: PAL.ink, hi: PAL.indigo, shadow: PAL.ink },
   paper: { fill: PAL.cream, edge: PAL.rust, hi: PAL.white, shadow: PAL.clay },
   light: { fill: PAL.white, edge: PAL.ink, hi: PAL.white, shadow: PAL.stone },
   accent: { fill: PAL.teal, edge: PAL.ink, hi: PAL.aqua, shadow: PAL.pine },
+  // 밝은 종이 단추(첫 화면 메뉴): 아래 조작판의 메뉴 단추와 같은 톤
+  soft: { fill: PAL.white, edge: PAL.steel, hi: PAL.white, shadow: PAL.khaki },
+  softOn: { fill: PAL.mint, edge: PAL.teal, hi: PAL.foam, shadow: PAL.khaki },
 };
 
 export function drawPanel(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, kind: PanelKind = 'dark', alpha = 1) {

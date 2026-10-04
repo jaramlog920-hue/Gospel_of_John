@@ -30,6 +30,8 @@ import { computeView } from './ui/layout.ts';
 import { mountVirtualPad } from './ui/VirtualPad.ts';
 
 mountVirtualPad(document.getElementById('pad')!);
+// 첫 화면(타이틀)은 조작판 없이 시작한다. 처음부터 넓은 크기로 그려서 한 번 깜빡이지 않게 한다(TitleScene showPad).
+if (!new URLSearchParams(location.search).get('scene')) document.body.classList.add('on-title');
 
 const parent = document.getElementById('game')!;
 

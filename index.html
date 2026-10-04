@@ -152,6 +152,18 @@
         #menu-btn {
           display: none;
         }
+        /* 첫 화면: 조작판 없이 게임 칸이 화면 전체를 쓴다 (TitleScene이 body에 on-title을 붙인다) */
+        body.on-title #game {
+          flex: 1;
+          height: auto;
+        }
+        body.on-title #pad {
+          display: none;
+        }
+      }
+      /* 가로 화면 첫 화면: 모서리 메뉴 단추도 숨긴다(첫 화면 메뉴와 겹친다) */
+      body.on-title #menu-btn {
+        display: none;
       }
     </style>
   </head>
