@@ -489,9 +489,13 @@ export class Ch6FeedingScene extends Phaser.Scene {
       }
       if (this.carrying && Phaser.Math.Distance.Between(p.x, p.y, g.x, g.y - 6) < 22) {
         if (this.carrying.food === g.want) {
+          // 남은 개수를 먼저 정한다. 마지막 한 개면 feed()가 배급을 끝내며 손을 비우므로(endRush),
+          // 그 뒤에 this.carrying을 읽으면 null이라 게임이 멈췄다(2026-10-04 고침).
+          const carried = this.carrying;
+          const left = carried.count - 1;
+          this.setCarry(left > 0 ? { food: carried.food, count: left } : null);
           this.feed(g);
-          const left = this.carrying.count - 1;
-          this.setCarry(left > 0 ? { food: this.carrying.food, count: left } : null);
+          if (this.phase !== 'rush') return;
         } else if (!this.tweens.isTweening(g.bubble)) {
           this.tweens.add({ targets: g.bubble, x: g.x + 2, duration: 50, yoyo: true, repeat: 2 });
         }
