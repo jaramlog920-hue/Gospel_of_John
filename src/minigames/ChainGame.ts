@@ -45,7 +45,8 @@ export class ChainGame extends MiniGame {
     rt.endDraw();
     this.add.image(40, this.yAt(0.4), 'well').setDepth(this.yAt(0.4));
     for (let x = 340; x < WORLD; x += 70) this.add.image(x, this.top + 2, 'house').setOrigin(0.5, 1);
-    for (let i = 0; i < NEED + 1; i++) {
+    // 모을 사람 수만큼만 둔다(사용자 요청 2026-10-04: 여섯 명을 모으라는데 일곱 명이 있었다).
+    for (let i = 0; i < NEED; i++) {
       const key = `crowd${i % 6}`;
       const s = this.add.sprite(330 + i * 32, this.yAt(((i * 41) % 90) / 100 + 0.05), key, 0);
       s.setDepth(s.y);
