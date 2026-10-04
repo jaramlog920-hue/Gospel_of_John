@@ -198,8 +198,8 @@ export class StoryScene extends Phaser.Scene {
     const ch = this.story.ch;
     const nextStory = Object.values(STORIES).find((s) => s.ch === ch && s !== this.story);
     if (!Save.data.chaptersDone.includes(ch) && !nextStory) Save.data.chaptersDone.push(ch);
-    this.time.delayedCall(this.announced ? this.announced * 2600 : 500, () => {
-      this.cameras.main.fadeOut(700, ...rgb(PAL.ink));
+    this.time.delayedCall(this.announced ? this.announced * 2600 : 300, () => {
+      this.cameras.main.fadeOut(400, ...rgb(PAL.ink));
       this.cameras.main.once('camerafadeoutcomplete', () => goNext(this));
     });
   }

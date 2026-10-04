@@ -176,9 +176,23 @@ export async function titleCard(scene: Phaser.Scene, title: string, sub: string)
   root.add([t, line, s]);
   root.setAlpha(0);
   Sfx.chime();
-  await new Promise<void>((r) => scene.tweens.add({ targets: root, alpha: 1, duration: 400, onComplete: () => r() }));
-  await new Promise<void>((r) => scene.tweens.add({ targets: line, scaleX: 1, duration: 500, ease: 'Cubic.Out', onComplete: () => r() }));
-  await new Promise<void>((r) => scene.time.delayedCall(1000, () => r()));
-  await new Promise<void>((r) => scene.tweens.add({ targets: root, alpha: 0, duration: 500, onComplete: () => r() }));
+  // 모두 1.5초쯤. 누르면 바로 넘어간다(사용자 요청 2026-10-04: 장을 넘길 때 너무 오래 걸림).
+  let skip: () => void = () => {};
+  const skipped = new Promise<void>((r) => (skip = r));
+  const onKey = (e: KeyboardEvent) => (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyZ') && skip();
+  scene.time.delayedCall(150, () => {
+    scene.input.once('pointerdown', skip);
+    scene.input.keyboard?.on('keydown', onKey);
+  });
+  const play = async () => {
+    await new Promise<void>((r) => scene.tweens.add({ targets: root, alpha: 1, duration: 250, onComplete: () => r() }));
+    await new Promise<void>((r) => scene.tweens.add({ targets: line, scaleX: 1, duration: 350, ease: 'Cubic.Out', onComplete: () => r() }));
+    await new Promise<void>((r) => scene.time.delayedCall(650, () => r()));
+    await new Promise<void>((r) => scene.tweens.add({ targets: root, alpha: 0, duration: 250, onComplete: () => r() }));
+  };
+  await Promise.race([play(), skipped]);
+  scene.input.off('pointerdown', skip);
+  scene.input.keyboard?.off('keydown', onKey);
+  scene.tweens.killTweensOf([root, line]);
   root.destroy();
 }

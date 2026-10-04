@@ -35,7 +35,7 @@ export class ChapterQuizScene extends Phaser.Scene {
     }
     Save.setFlag(quizFlag(ch), true);
     await say(this, '나', `${ch}장을 다시 떠올려 보았다.`);
-    this.cameras.main.fadeOut(500, ...rgb(PAL.ink));
+    this.cameras.main.fadeOut(350, ...rgb(PAL.ink));
     this.cameras.main.once('camerafadeoutcomplete', () => goNext(this));
   }
 

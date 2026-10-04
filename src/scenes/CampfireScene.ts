@@ -43,7 +43,7 @@ export class CampfireScene extends Phaser.Scene {
     const rec = { ch, emotion: EMOTIONS[pick].key, flags };
     Save.recordDiary(rec);
     await showDiaryPage(this, rec, { typing: true, closeLabel: '다음 ▶' });
-    this.cameras.main.fadeOut(600, ...rgb(PAL.ink));
+    this.cameras.main.fadeOut(350, ...rgb(PAL.ink));
     this.cameras.main.once('camerafadeoutcomplete', () => goNext(this));
   }
 }
