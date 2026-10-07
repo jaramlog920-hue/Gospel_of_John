@@ -1,7 +1,7 @@
 // 도트 그림을 코드로 그려 텍스처로 등록한다(이미지 파일 0바이트).
 // 그림체: Resurrect 64 팔레트, 1px 외곽선, 두세 단계 명암. 캐릭터는 앞·뒤·옆 걷기 모습이 있다.
 import Phaser from 'phaser';
-import { PAL, css } from './palette.ts';
+import { PAL, css, WORLD } from './palette.ts';
 
 // ───────── 픽셀 버퍼 ─────────
 
@@ -392,23 +392,23 @@ export function generateTextures(scene: Phaser.Scene) {
   tile('grass-flower2', (p) => p.map(4, 7, ['.l.', 'lWl', '.l.', '..f', '...'], { l: PAL.lavender, W: PAL.white, f: PAL.pine }));
   canvasTexture(scene, 'sand', 16, 16, (ctx) => {
     const p = new Pix(16, 16);
-    p.rect(0, 0, 16, 16, PAL.honey);
+    p.rect(0, 0, 16, 16, WORLD.sand);
     for (const [x, y] of [
       [3, 2],
       [10, 5],
       [6, 11],
       [13, 13],
     ])
-      p.set(x, y, PAL.tan);
+      p.set(x, y, WORLD.sandSpeck);
     p.draw(ctx);
   });
   canvasTexture(scene, 'water', 32, 16, (ctx) => {
     const p = new Pix(32, 16);
-    p.rect(0, 0, 32, 16, PAL.sky);
-    p.map(0, 3, ['..FFFF..........................', '.F....F.........................'], { F: PAL.skyLight });
-    p.map(0, 10, ['..................FFFF..........', '.................F....F.........'], { F: PAL.skyLight });
-    p.set(9, 6, PAL.foam);
-    p.set(26, 13, PAL.foam);
+    p.rect(0, 0, 32, 16, WORLD.water);
+    p.map(0, 3, ['..FFFF..........................', '.F....F.........................'], { F: WORLD.waterHi });
+    p.map(0, 10, ['..................FFFF..........', '.................F....F.........'], { F: WORLD.waterHi });
+    p.set(9, 6, WORLD.waterFoam);
+    p.set(26, 13, WORLD.waterFoam);
     p.draw(ctx);
   });
   mapTexture(
@@ -571,8 +571,8 @@ export function generateProps(scene: Phaser.Scene) {
     const p = new Pix(34, 30);
     p.rect(2, 6, 30, 22, base);
     for (let y = 7; y < 28; y += 3) for (let x = 2 + ((y / 3) % 2) * 3; x < 32; x += 6) p.rect(x, y, 5, 2, (x + y) % 4 ? a : b);
-    p.rect(0, 3, 34, 3, PAL.khaki); // 흙을 다진 지붕
-    p.rect(0, 5, 34, 1, PAL.taupe);
+    p.rect(0, 3, 34, 3, WORLD.roof); // 흙을 다진 지붕
+    p.rect(0, 5, 34, 1, WORLD.roofLine);
     for (let x = 2; x < 34; x += 5) p.set(x, 6, PAL.rust); // 들보 끝
     p.rect(14, 16, 6, 12, PAL.ink); // 문
     p.rect(14, 16, 6, 1, PAL.rust);
@@ -585,7 +585,7 @@ export function generateProps(scene: Phaser.Scene) {
     scene,
     'pillar',
     ['CCCCCCCCCC', '.cccccccc.', '..mCCCCm..', ...Array(26).fill('..mCCCCs..'), '..mCCCCs..', '.cccccccc.', 'CCCCCCCCCC'],
-    { C: PAL.cream, c: PAL.khaki, m: PAL.white, s: PAL.khaki },
+    { C: WORLD.pillar, c: WORLD.pillarShade, m: PAL.white, s: WORLD.pillarShade },
   );
   // 우물: 돌을 둥글게 쌓은 입구
   mapTexture(scene, 'well', ['....ssssssss....', '..ssMMMMMMMMss..', '.sMiiiiiiiiiiMs.', 'sMMiiiiiiiiiiMMs', 'SSSSSSSSSSSSSSSS', 'SsSSsSSsSSsSSsSS', 'SSSSSSSSSSSSSSSS', '.SSSSSSSSSSSSSS.'], {
@@ -597,7 +597,7 @@ export function generateProps(scene: Phaser.Scene) {
   // 물 항아리(돌항아리)
   mapTexture(scene, 'jar', ['.MMMM.', 'MssssM', '.SSSS.', 'SSSSSS', 'SSSSSs', 'SSSSSs', 'SSSSss', '.SSss.'], { M: PAL.steel, s: PAL.ink, S: PAL.mist });
   // 갈대
-  mapTexture(scene, 'reeds', ['.k...k..', '.g..kg..', 'kg..gg.k', 'gg.gg..g', 'g.gg.gg.', 'gggg.gg.', '.gg.gg..', '.g..g...'], { g: PAL.olive, k: PAL.khaki });
+  mapTexture(scene, 'reeds', ['.k...k..', '.g..kg..', 'kg..gg.k', 'gg.gg..g', 'g.gg.gg.', 'gggg.gg.', '.gg.gg..', '.g..g...'], { g: WORLD.reed, k: WORLD.wildSpeck });
   // 종려나무(대추야자)
   mapTexture(
     scene,
@@ -694,50 +694,54 @@ export function generateGrounds(scene: Phaser.Scene) {
   };
   // 석회암 포석(성전·관저): 옅은 회백색
   tile('paving', (p) => {
-    p.rect(0, 0, 16, 16, PAL.mist);
-    p.rect(0, 7, 16, 1, PAL.steel);
-    p.rect(0, 15, 16, 1, PAL.steel);
-    p.rect(9, 0, 1, 7, PAL.steel);
-    p.rect(3, 8, 1, 7, PAL.steel);
-    p.set(5, 3, PAL.white);
-    p.set(12, 11, PAL.white);
+    p.rect(0, 0, 16, 16, WORLD.paving);
+    p.rect(0, 7, 16, 1, WORLD.pavingLine);
+    p.rect(0, 15, 16, 1, WORLD.pavingLine);
+    p.rect(9, 0, 1, 7, WORLD.pavingLine);
+    p.rect(3, 8, 1, 7, WORLD.pavingLine);
+    p.set(5, 3, WORLD.pavingHi);
+    p.set(12, 11, WORLD.pavingHi);
   });
   // 현무암 포석(갈릴리 회당·골목)
   tile('basalt', (p) => {
-    p.rect(0, 0, 16, 16, PAL.mauve);
-    p.rect(0, 7, 16, 1, PAL.shadow);
-    p.rect(0, 15, 16, 1, PAL.shadow);
-    p.rect(7, 0, 1, 7, PAL.shadow);
-    p.rect(12, 8, 1, 7, PAL.shadow);
-    p.set(3, 3, PAL.stone);
+    p.rect(0, 0, 16, 16, WORLD.basalt);
+    p.rect(0, 7, 16, 1, WORLD.basaltLine);
+    p.rect(0, 15, 16, 1, WORLD.basaltLine);
+    p.rect(7, 0, 1, 7, WORLD.basaltLine);
+    p.rect(12, 8, 1, 7, WORLD.basaltLine);
+    p.set(3, 3, WORLD.basaltHi);
   });
   // 다진 흙길: 마른 회갈색
   tile('dirt', (p) => {
-    p.rect(0, 0, 16, 16, PAL.khaki);
+    p.rect(0, 0, 16, 16, WORLD.dust);
     for (const [x, y] of [
       [3, 4],
       [11, 9],
       [6, 13],
+      [14, 2],
+      [8, 6],
     ])
-      p.set(x, y, PAL.taupe);
+      p.set(x, y, WORLD.dustSpeck);
+    p.set(12, 14, WORLD.dustHi);
+    p.set(1, 10, WORLD.dustHi);
   });
   // 흙을 바른 실내 바닥
   tile('floor', (p) => {
-    p.rect(0, 0, 16, 16, PAL.taupe);
-    p.set(4, 5, PAL.khaki);
-    p.set(12, 11, PAL.mauve);
+    p.rect(0, 0, 16, 16, WORLD.floor);
+    p.set(4, 5, WORLD.floorSpeck);
+    p.set(12, 11, WORLD.floorSpeck2);
   });
   // 나무 배 갑판
   tile('deck', (p) => {
-    p.rect(0, 0, 16, 16, PAL.taupe);
-    for (const y of [0, 5, 10, 15]) p.rect(0, y, 16, 1, PAL.bark);
+    p.rect(0, 0, 16, 16, WORLD.deck);
+    for (const y of [0, 5, 10, 15]) p.rect(0, y, 16, 1, WORLD.deckLine);
     p.set(7, 2, PAL.mud);
     p.set(12, 12, PAL.mud);
   });
   // 광야: 마른 흙과 드문드문 마른 풀
   tile('wild', (p) => {
-    p.rect(0, 0, 16, 16, PAL.khaki);
-    p.map(10, 10, ['o.o', '.o.'], { o: PAL.olive });
-    p.set(3, 4, PAL.honey);
+    p.rect(0, 0, 16, 16, WORLD.wild);
+    p.map(10, 10, ['o.o', '.o.'], { o: WORLD.wildGrass });
+    p.set(3, 4, WORLD.wildSpeck);
   });
 }

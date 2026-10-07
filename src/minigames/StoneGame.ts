@@ -1,6 +1,6 @@
 // 11장 베다니: 사람들과 함께 무덤 앞의 큰 돌을 옆으로 굴린다. 확인 버튼(또는 화면)을 박자에 맞춰 누른다.
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { WORLD as WC } from '../art/palette.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { MiniGame } from './MiniGame.ts';
 
@@ -23,9 +23,9 @@ export class StoneGame extends MiniGame {
     this.helpers = [];
     this.force = 0;
     this.playing = false;
-    this.cameras.main.setBackgroundColor(PAL.sky);
+    this.cameras.main.setBackgroundColor(WC.skyDay[0]);
     const ground = Math.floor(H * 0.7);
-    this.add.rectangle(0, ground, W, H, PAL.khaki).setOrigin(0);
+    this.add.rectangle(0, ground, W, H, WC.dust).setOrigin(0);
     this.add.image(W / 2, ground + 4, 'tomb').setOrigin(0.5, 1).setScale(2);
     this.startX = W / 2 - 12;
     this.stone = this.add.image(this.startX, ground + 4, 'stone-round').setOrigin(0.5, 1).setScale(2);

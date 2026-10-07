@@ -1,7 +1,7 @@
 // 4장: 왕의 신하가 집으로 돌아가는 길, 주인공도 가버나움 쪽으로 서둘러 달려간다.
 // 길의 돌은 확인 버튼(또는 화면)으로 뛰어넘는다. 부딪혀도 잠깐 비틀거릴 뿐이다.
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD as WC } from '../art/palette.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { MiniGame } from './MiniGame.ts';
 
@@ -35,13 +35,13 @@ export class RunnerGame extends MiniGame {
     this.stunned = 0;
     this.playing = false;
     this.ground = Math.floor(H * 0.72);
-    this.cameras.main.setBackgroundColor(PAL.sky);
+    this.cameras.main.setBackgroundColor(WC.skyDay[0]);
     // 먼 갈릴리 바다와 언덕, 길가의 올리브 나무 한 줄
-    this.add.rectangle(0, this.ground - 34, W, 8, PAL.skyLight).setOrigin(0);
+    this.add.rectangle(0, this.ground - 34, W, 8, WC.skyDay[2]).setOrigin(0);
     this.add.rectangle(0, this.ground - 26, W, 26, PAL.olive).setOrigin(0);
     const treeH = this.textures.getFrame('tree').height;
     this.scenery = this.add.tileSprite(0, this.ground - treeH - 4, W, treeH, 'tree').setOrigin(0);
-    this.add.rectangle(0, this.ground - 2, W, H, PAL.khaki).setOrigin(0);
+    this.add.rectangle(0, this.ground - 2, W, H, WC.dust).setOrigin(0);
     this.road = this.add.tileSprite(0, this.ground, W, 16, 'dirt').setOrigin(0);
     this.player = this.add.sprite(Math.floor(W * 0.25), this.ground, 'player', 8).setOrigin(0.5, 1).play('player-walk-side');
     this.player.anims.timeScale = 1.6;

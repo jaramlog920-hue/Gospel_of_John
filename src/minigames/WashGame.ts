@@ -1,7 +1,7 @@
 // 13장 다락방: 저녁을 앞두고 바깥 우물에서 물을 길어 방의 큰 물 항아리를 채운다.
 // 발을 씻기시는 일은 본문(13:4–5)대로 두고, 주인공은 그 전에 물을 준비하는 일만 돕는다(설계 원칙 5).
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD as WC } from '../art/palette.ts';
 import { faceAndWalk } from '../art/textures.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { bt } from '../ui/text.ts';
@@ -29,7 +29,7 @@ export class WashGame extends MiniGame {
     this.carrying = false;
     this.trips = 0;
     this.playing = false;
-    this.cameras.main.setBackgroundColor(PAL.khaki);
+    this.cameras.main.setBackgroundColor(WC.plaster);
     const rt = this.add.renderTexture(0, Math.floor(H * 0.3), W, H).setOrigin(0);
     rt.beginDraw();
     for (let y = 0; y < H; y += 16) for (let x = 0; x < W; x += 16) rt.batchDraw(x > W - 60 ? 'paving' : 'floor', x, y);

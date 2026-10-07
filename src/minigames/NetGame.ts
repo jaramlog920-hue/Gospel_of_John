@@ -1,7 +1,7 @@
 // 21장 디베랴 바닷가: 배 오른편에 던진 그물이 무거워 끌어올리기 힘들다. 사람들과 함께 그물을 당긴다.
 // 확인 버튼을 누를 때마다 당기고, 올라온 물고기를 센다.
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD as WC } from '../art/palette.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { MiniGame } from './MiniGame.ts';
 
@@ -27,7 +27,7 @@ export class NetGame extends MiniGame {
     this.pull = 0;
     this.playing = false;
     this.cameras.main.setBackgroundColor(PAL.rose);
-    this.add.rectangle(0, H * 0.18, W, 10, PAL.honey).setOrigin(0);
+    this.add.rectangle(0, H * 0.18, W, 10, WC.sand).setOrigin(0);
     const sea = this.add.tileSprite(0, H * 0.25, W, H, 'water').setOrigin(0);
     this.tweens.add({ targets: sea, tilePositionX: 32, duration: 3000, repeat: -1 });
     this.boatY = Math.floor(H * 0.42);

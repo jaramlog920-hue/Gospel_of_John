@@ -1,6 +1,6 @@
 // 12장 베다니의 저녁: 옥합에서 퍼진 향기가 온 집에 가득해진다. 잠깐 쉬어 가는 연출(설계 문서 4장).
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD as WC } from '../art/palette.ts';
 import { faceAndWalk } from '../art/textures.ts';
 import { tone } from '../audio/sfx.ts';
 import { MiniGame } from './MiniGame.ts';
@@ -23,7 +23,7 @@ export class ScentGame extends MiniGame {
     this.motes = [];
     this.t = 0;
     this.playing = false;
-    this.cameras.main.setBackgroundColor(PAL.khaki);
+    this.cameras.main.setBackgroundColor(WC.plaster);
     const rt = this.add.renderTexture(0, Math.floor(H * 0.25), W, H).setOrigin(0);
     rt.beginDraw();
     for (let y = 0; y < H; y += 16) for (let x = 0; x < W; x += 16) rt.batchDraw('floor', x, y);

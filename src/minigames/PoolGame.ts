@@ -1,7 +1,7 @@
 // 5장 베데스다: 물이 움직일 때 누운 사람을 도와 먼저 넣어 주려 하지만, 매번 다른 사람이 먼저 들어간다.
 // 이길 수 없는 게임이다. 실패를 이야기로 풀어내고(설계 문서 4장), 표적은 이어지는 본문으로 본다.
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD as WC } from '../art/palette.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { say } from '../ui/Dialog.ts';
 import { MiniGame } from './MiniGame.ts';
@@ -37,7 +37,7 @@ export class PoolGame extends MiniGame {
     rt.endDraw();
     for (let x = 12; x < W; x += 32) this.add.image(x, Math.floor(H * 0.22), 'pillar').setOrigin(0.5, 1).setScale(0.6);
     const py = Math.floor(H * 0.3);
-    this.add.rectangle(10, py, W - 20, Math.floor(H * 0.3), PAL.khaki).setOrigin(0);
+    this.add.rectangle(10, py, W - 20, Math.floor(H * 0.3), WC.wallLine).setOrigin(0);
     this.water = this.add.tileSprite(14, py + 4, W - 28, Math.floor(H * 0.3) - 8, 'water').setOrigin(0);
     this.man = this.add.image(W * 0.35, H * 0.78, 'sitter6').setAngle(90);
     this.player = this.add.sprite(W * 0.35 + 18, H * 0.78, 'player', 4);

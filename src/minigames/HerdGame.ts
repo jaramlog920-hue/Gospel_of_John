@@ -1,6 +1,6 @@
 // 2장 성전: 뜰에 흩어진 소와 양을 왼쪽 문밖으로 몬다. 짐승은 주인공이 다가가면 반대쪽으로 달아난다.
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD as WC } from '../art/palette.ts';
 import { faceAndWalk } from '../art/textures.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { bt } from '../ui/text.ts';
@@ -34,7 +34,7 @@ export class HerdGame extends MiniGame {
     for (let y = 0; y < H; y += 16) for (let x = 0; x < W; x += 16) rt.batchDraw('paving', x, y);
     rt.endDraw();
     const g = this.add.graphics();
-    g.fillStyle(PAL.khaki).fillRect(0, 0, W, this.top - 4);
+    g.fillStyle(WC.wild).fillRect(0, 0, W, this.top - 4);
     for (let x = 16; x < W; x += 36) this.add.image(x, this.top, 'pillar').setOrigin(0.5, 1).setScale(0.7);
     // 왼쪽 문
     g.fillStyle(PAL.ink).fillRect(0, this.top + 10, 12, H - this.top - 20);

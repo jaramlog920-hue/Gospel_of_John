@@ -1,6 +1,6 @@
 // 8장 초막절: 명절 저녁, 성전 뜰 곳곳의 꺼진 등잔을 찾아 불을 붙인다.
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD as WC } from '../art/palette.ts';
 import { faceAndWalk } from '../art/textures.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { MiniGame } from './MiniGame.ts';
@@ -28,7 +28,7 @@ export class LampsGame extends MiniGame {
     this.playing = false;
     this.top = Math.floor(H * 0.3);
     this.cameras.main.setBackgroundColor(PAL.purple);
-    this.add.rectangle(0, this.top - 30, WORLD, 30, PAL.khaki).setOrigin(0);
+    this.add.rectangle(0, this.top - 30, WORLD, 30, WC.wall).setOrigin(0);
     const rt = this.add.renderTexture(0, this.top, WORLD, H - this.top).setOrigin(0);
     rt.beginDraw();
     for (let y = 0; y < H - this.top; y += 16) for (let x = 0; x < WORLD; x += 16) rt.batchDraw('paving', x, y);

@@ -49,7 +49,8 @@ export class TitleScene extends Phaser.Scene {
 
     // 해 질 녘의 하늘: 연하늘에서 수평선의 살구빛으로(파스텔, 사용자 요청 2026-10-04). 띠 경계는 디더링으로 섞는다.
     const sky = this.add.graphics();
-    const bands = [PAL.skyLight, PAL.skyLight, PAL.sky, PAL.lilac, PAL.lavender, PAL.peach];
+    // 푸른 새벽: 짙은 남빛에서 수평선 쪽 옅은 살구빛으로 (어둠 속 빛)
+    const bands = [0x2f3a5e, 0x37436a, 0x434f78, 0x5a6390, 0x8c84b4, 0xd9b9c2];
     const bandH = Math.ceil(seaTop / bands.length);
     bands.forEach((c, i) => sky.fillStyle(c).fillRect(0, i * bandH, W, bandH));
     bands.forEach((c, i) => {
@@ -61,18 +62,27 @@ export class TitleScene extends Phaser.Scene {
       for (let x = 1; x < W; x += 4) sky.fillRect(x, i * bandH, 1, 1);
     });
     // 먼 언덕 (밝은 하늘에서는 흰 별이 얼룩처럼 보여서 별은 두지 않는다)
-    const hills = this.add.graphics().fillStyle(PAL.mauve);
+    // 별과 샛별 하나
+    const stars = this.add.graphics();
+    for (let i = 0; i < 40; i++) stars.fillStyle(i % 4 ? PAL.mist : PAL.white).fillRect((i * 97) % W, (i * 41) % Math.max(10, Math.floor(seaTop * 0.6)), 1, 1);
+    const star = this.add.graphics();
+    const sx = Math.round(W * 0.78);
+    const sy = Math.round(seaTop * 0.42);
+    star.fillStyle(PAL.cream).fillRect(sx - 1, sy - 1, 3, 3);
+    star.fillStyle(PAL.honey).fillRect(sx, sy - 3, 1, 7).fillRect(sx - 3, sy, 7, 1);
+    this.tweens.add({ targets: star, alpha: 0.55, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    const hills = this.add.graphics().fillStyle(0x3d4669);
     for (let x = 0; x < W; x += 2) hills.fillRect(x, seaTop - 6 - Math.round(4 + Math.sin(x / 23) * 3 + Math.sin(x / 7) * 1), 2, 12);
     // 움직이는 밤바다
-    const sea = this.add.tileSprite(0, seaTop, W, H - seaTop, 'water').setOrigin(0).setTint(PAL.navy);
+    const sea = this.add.tileSprite(0, seaTop, W, H - seaTop, 'water').setOrigin(0).setTint(0x6f7aa6);
     this.tweens.add({ targets: sea, tilePositionX: 32, duration: 4000, repeat: -1 });
-    this.add.rectangle(0, seaTop, W, 1, PAL.lilac).setOrigin(0).setAlpha(0.7);
+    this.add.rectangle(0, seaTop, W, 1, 0xeec9b6).setOrigin(0).setAlpha(0.8);
 
     // 로고 → 부제는 가깝게, 부제 → 두루마리 칩은 조금 띄우고, 칩 → 메뉴는 더 넓게(묶음이 구분되게)
     // 로고 뒤 빛은 하늘을 하얗게 날리지 않게 작고 옅게
     this.add.image(W / 2, L.logoY, 'halo').setScale(1.8).setAlpha(0.14).setBlendMode(Phaser.BlendModes.ADD);
     outlinedText(this, W / 2, L.logoY, '일곱 표적', PAL.honey, 2);
-    bt(this, W / 2, L.subY, '와서 보라', PAL.night, 'body').setOrigin(0.5);
+    bt(this, W / 2, L.subY, '와서 보라', PAL.lavender, 'body').setOrigin(0.5);
 
     // 작은 두루마리 단추: 참조 표기만 보여주고, 누르면 본문 원문이 열린다. 메뉴 단추와 같은 모양이라 누를 수 있어 보인다.
     const chip = new Tag(this, W / 2, L.chipTop, `두루마리 펼치기 · ${Scripture.label(TITLE_REF)}`, {

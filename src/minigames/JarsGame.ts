@@ -1,7 +1,7 @@
 // 2장 가나: 돌항아리 여섯 개에 물을 아귀까지 채운다. 물통의 수위가 오르내릴 때 맨 위에서 부으면 된다.
 // 주인공은 하인들 곁에서 물 긷기를 돕는다. 표적은 다 채운 뒤 연출로만 보여준다(설계 원칙 5).
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD as WC } from '../art/palette.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { bt } from '../ui/text.ts';
 import { MiniGame } from './MiniGame.ts';
@@ -37,11 +37,11 @@ export class JarsGame extends MiniGame {
     this.waters = [];
     this.jars = [];
     this.playing = false;
-    this.cameras.main.setBackgroundColor(PAL.khaki);
+    this.cameras.main.setBackgroundColor(WC.plaster);
     const g = this.add.graphics();
     g.fillStyle(PAL.shadow).fillRect(0, 0, W, Math.floor(H * 0.35)); // 현무암 벽
     for (let y = 2; y < H * 0.35; y += 6) for (let x = (y % 12) * 2; x < W; x += 14) g.fillStyle(PAL.mauve).fillRect(x, y, 10, 4);
-    g.fillStyle(PAL.taupe).fillRect(0, Math.floor(H * 0.35), W, 2);
+    g.fillStyle(WC.plasterLine).fillRect(0, Math.floor(H * 0.35), W, 2);
 
     // 항아리 여섯 개(2배로 크게)
     const gap = Math.min(30, (W - 30) / JARS);

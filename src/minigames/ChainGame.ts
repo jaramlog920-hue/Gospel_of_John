@@ -1,7 +1,7 @@
 // 4장 수가: 여자가 마을로 달려간 뒤, 주인공도 마을을 돌며 사람들을 불러 우물로 데려온다.
 // 따라오는 사람이 줄지어 길어지는 재미(설계 문서 4장). 마을 사람들은 가상 인물이며 말하지 않는다.
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD as WC } from '../art/palette.ts';
 import { faceAndWalk, grassTile } from '../art/textures.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { MiniGame } from './MiniGame.ts';
@@ -36,7 +36,7 @@ export class ChainGame extends MiniGame {
     this.trail = [];
     this.playing = false;
     this.top = Math.floor(H * 0.32);
-    this.cameras.main.setBackgroundColor(PAL.skyLight);
+    this.cameras.main.setBackgroundColor(WC.skyNoon[1]);
     const g = this.add.graphics();
     g.fillStyle(PAL.olive).fillRect(0, this.top - 24, WORLD, 24);
     const rt = this.add.renderTexture(0, this.top, WORLD, H - this.top).setOrigin(0);

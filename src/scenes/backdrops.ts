@@ -1,6 +1,6 @@
 // 이야기 장면의 배경. 장소마다 하늘·먼 풍경·바닥·소품을 그린다(1세기 유대·갈릴리 고증, 설계 원칙 8).
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD } from '../art/palette.ts';
 import { grassTile } from '../art/textures.ts';
 import type { Setting } from '../story/stories.ts';
 
@@ -22,13 +22,13 @@ export interface Stage {
 }
 
 type Sky = 'day' | 'noon' | 'evening' | 'night' | 'dawn' | 'overcast';
-const SKIES: Record<Sky, number[]> = {
-  day: [PAL.sky, PAL.sky, PAL.skyLight],
-  noon: [PAL.skyLight, PAL.skyLight, PAL.foam],
-  evening: [PAL.purple, PAL.rose, PAL.peach],
-  night: [PAL.dusk, PAL.dusk, PAL.indigo],
-  dawn: [PAL.indigo, PAL.rose, PAL.honey],
-  overcast: [PAL.shadow, PAL.stone, PAL.steel],
+const SKIES: Record<Sky, readonly number[]> = {
+  day: WORLD.skyDay,
+  noon: WORLD.skyNoon,
+  evening: WORLD.skyEvening,
+  night: WORLD.skyNight,
+  dawn: WORLD.skyDawn,
+  overcast: WORLD.skyOvercast,
 };
 
 interface SettingDef {
@@ -54,7 +54,7 @@ function sky(st: Stage, kind: Sky) {
     for (let x = (i % 2) * 2; x < st.W; x += 4) g.fillRect(x, i * bandH - 1, 2, 1);
   });
   if (kind === 'night') {
-    for (let i = 0; i < 30; i++) g.fillStyle(PAL.white).fillRect((i * 83) % st.W, (i * 37) % Math.max(10, st.groundTop - 20), 1, 1);
+    for (let i = 0; i < 46; i++) g.fillStyle(i % 5 ? PAL.mist : PAL.white).fillRect((i * 83) % st.W, (i * 37) % Math.max(10, st.groundTop - 20), 1, 1);
     g.fillStyle(PAL.cream).fillCircle(st.W - 30, 18, 6);
   }
 }
@@ -114,19 +114,19 @@ function charcoalFire(st: Stage, x: number, f: number) {
 function cityWall(st: Stage, factor = 0.6) {
   const g = st.scene.add.graphics().setScrollFactor(factor, 1).setDepth(-85);
   const top = st.groundTop - 26;
-  g.fillStyle(PAL.khaki).fillRect(0, top, st.worldW, 26);
-  g.fillStyle(PAL.cream).fillRect(0, top, st.worldW, 2);
-  for (let x = 0; x < st.worldW; x += 12) g.fillStyle(PAL.khaki).fillRect(x, top - 4, 7, 4);
-  g.fillStyle(PAL.taupe);
+  g.fillStyle(WORLD.wall).fillRect(0, top, st.worldW, 26);
+  g.fillStyle(WORLD.wallTop).fillRect(0, top, st.worldW, 2);
+  for (let x = 0; x < st.worldW; x += 12) g.fillStyle(WORLD.wall).fillRect(x, top - 4, 7, 4);
+  g.fillStyle(WORLD.wallLine);
   for (let y = top + 6; y < st.groundTop; y += 6) for (let x = (y % 12) * 2; x < st.worldW; x += 18) g.fillRect(x, y, 10, 1);
 }
 
 /** 실내: 회칠한 벽과 작은 창 */
 function interiorWall(st: Stage) {
   const g = st.scene.add.graphics().setScrollFactor(0).setDepth(-100);
-  g.fillStyle(PAL.khaki).fillRect(0, 0, st.W, st.groundTop);
-  g.fillStyle(PAL.taupe).fillRect(0, st.groundTop - 4, st.W, 4);
-  g.fillStyle(PAL.cream);
+  g.fillStyle(WORLD.plaster).fillRect(0, 0, st.W, st.groundTop);
+  g.fillStyle(WORLD.plasterLine).fillRect(0, st.groundTop - 4, st.W, 4);
+  g.fillStyle(WORLD.wallTop);
   for (let i = 0; i < 12; i++) g.fillRect((i * 53) % st.W, (i * 29) % Math.max(8, st.groundTop - 8), 2, 1);
   const beams = st.scene.add.graphics().setDepth(-95);
   for (let x = 20; x < st.worldW; x += 70) {
@@ -143,7 +143,7 @@ export const SETTINGS: Record<Setting, SettingDef> = {
     ground: 'wild',
     crowd: 4,
     build(st) {
-      hills(st, PAL.khaki, PAL.honey, 16, 0.4);
+      hills(st, WORLD.hillSlate, WORLD.hillSlateRim, 16, 0.4);
       water(st, st.groundTop - 10, 10);
       row(st, 'reeds', 20, 46, { jitter: 20 });
       for (let x = 90; x < st.worldW; x += 190) prop(st, 'bush', x, 0.9);
@@ -154,7 +154,7 @@ export const SETTINGS: Record<Setting, SettingDef> = {
     ground: 'dirt',
     crowd: 5,
     build(st) {
-      hills(st, PAL.teal, PAL.aqua, 14, 0.4);
+      hills(st, WORLD.hillSage, WORLD.hillSageRim, 14, 0.4);
       row(st, 'house', 30, 88, { jitter: 16 });
       row(st, 'tree', 75, 176);
       if (st.ch === 2) for (let i = 0; i < 6; i++) prop(st, 'jar', 150 + i * 10, 0.05);
@@ -182,8 +182,8 @@ export const SETTINGS: Record<Setting, SettingDef> = {
     sky: 'noon',
     ground: 'wild',
     build(st) {
-      hills(st, PAL.olive, PAL.lime, 30, 0.3); // 그리심 산
-      hills(st, PAL.moss, PAL.olive, 10, 0.5);
+      hills(st, WORLD.hillSlate, WORLD.hillSlateRim, 30, 0.3); // 그리심 산
+      hills(st, WORLD.hillSage, WORLD.hillSageRim, 10, 0.5);
       prop(st, 'well', Math.round(st.worldW * 0.35), 0.35);
       row(st, 'tree', 50, 150);
     },
@@ -199,8 +199,8 @@ export const SETTINGS: Record<Setting, SettingDef> = {
       const px = 60;
       const pw = st.worldW - 120;
       const py = st.yAt(0.58);
-      g.fillStyle(PAL.khaki).fillRect(px - 4, py - 4, pw + 8, 26);
-      g.fillStyle(PAL.cream).fillRect(px - 2, py - 2, pw + 4, 22);
+      g.fillStyle(WORLD.wallLine).fillRect(px - 4, py - 4, pw + 8, 26);
+      g.fillStyle(WORLD.wallTop).fillRect(px - 2, py - 2, pw + 4, 22);
       water(st, py, 18).setDepth(py - 19).setX(px).setSize(pw, 18);
       for (let x = px + 10; x < px + pw; x += 34) st.scene.add.image(x, py - 6, `sitter${(x / 34) % 8 | 0}`).setDepth(py - 6);
     },
@@ -222,7 +222,7 @@ export const SETTINGS: Record<Setting, SettingDef> = {
     ground: 'basalt',
     crowd: 6,
     build(st) {
-      hills(st, PAL.teal, PAL.aqua, 12, 0.4);
+      hills(st, WORLD.hillSage, WORLD.hillSageRim, 12, 0.4);
       row(st, 'house', 40, 60); // 가버나움의 현무암 집들
     },
   },
@@ -234,7 +234,7 @@ export const SETTINGS: Record<Setting, SettingDef> = {
       cityWall(st, 0.5);
       const py = st.yAt(0.62);
       const g = st.scene.add.graphics().setDepth(py - 20);
-      for (let i = 0; i < 4; i++) g.fillStyle(i % 2 ? PAL.khaki : PAL.cream).fillRect(0, py - 12 + i * 3, st.worldW, 3);
+      for (let i = 0; i < 4; i++) g.fillStyle(i % 2 ? WORLD.wallLine : WORLD.wallTop).fillRect(0, py - 12 + i * 3, st.worldW, 3);
       water(st, py, 14).setDepth(py - 19);
     },
   },
@@ -242,7 +242,7 @@ export const SETTINGS: Record<Setting, SettingDef> = {
     sky: 'evening',
     ground: grassTile,
     build(st) {
-      hills(st, PAL.moss, PAL.olive, 12, 0.4);
+      hills(st, WORLD.hillSage, WORLD.hillSageRim, 12, 0.4);
       for (let x = 40; x < st.worldW; x += 16) st.scene.add.image(x, st.yAt(0.05), 'stonewall').setOrigin(0.5, 1).setDepth(st.yAt(0.05));
       for (let i = 0; i < 14; i++) {
         const s = prop(st, 'sheep', 50 + ((i * 97) % (st.worldW - 100)), 0.2 + ((i * 37) % 60) / 100, i % 2 === 0);
@@ -255,7 +255,7 @@ export const SETTINGS: Record<Setting, SettingDef> = {
     ground: 'dirt',
     crowd: 4,
     build(st) {
-      hills(st, PAL.khaki, PAL.honey, 26, 0.35);
+      hills(st, WORLD.hillSlate, WORLD.hillSlateRim, 26, 0.35);
       row(st, 'house-lime', 20, 110);
       row(st, 'tree', 70, 160);
       // 바위 무덤과 막음돌(마지막 두루마리 곁)
@@ -293,7 +293,7 @@ export const SETTINGS: Record<Setting, SettingDef> = {
     ground: 'dirt',
     night: true,
     build(st) {
-      hills(st, PAL.pine, PAL.teal, 14, 0.4);
+      hills(st, WORLD.hillDusk, WORLD.hillDuskRim, 14, 0.4);
       row(st, 'vine', 8, 16, { y: st.groundTop + 4 });
       row(st, 'tree', 100, 220);
     },
@@ -303,7 +303,7 @@ export const SETTINGS: Record<Setting, SettingDef> = {
     ground: grassTile,
     night: true,
     build(st) {
-      hills(st, PAL.pine, PAL.teal, 20, 0.4);
+      hills(st, WORLD.hillDusk, WORLD.hillDuskRim, 20, 0.4);
       row(st, 'tree', 20, 60, { jitter: 24 });
       for (let x = 80; x < st.worldW; x += 130) prop(st, 'tree', x, 0.95);
       lamp(st, st.worldW - 50, st.yAt(0.3)); // 다가오는 등불
@@ -332,7 +332,7 @@ export const SETTINGS: Record<Setting, SettingDef> = {
     ground: 'wild',
     build(st) {
       cityWall(st, 0.2);
-      hills(st, PAL.taupe, PAL.khaki, 30, 0.35);
+      hills(st, WORLD.hillDusk, WORLD.hillDuskRim, 30, 0.35);
       // 멀리 언덕 위, 작고 어둡게(원칙 6)
       st.scene.add.image(st.worldW * 0.5 * 0.35 + st.W * 0.4, st.groundTop - 34, 'crosses').setScrollFactor(0.35, 1).setDepth(-88).setAlpha(0.85);
     },
@@ -341,7 +341,7 @@ export const SETTINGS: Record<Setting, SettingDef> = {
     sky: (ch) => (ch === 20 ? 'dawn' : 'evening'),
     ground: grassTile,
     build(st) {
-      hills(st, PAL.moss, PAL.olive, 22, 0.4);
+      hills(st, WORLD.hillSage, WORLD.hillSageRim, 22, 0.4);
       row(st, 'tree', 30, 90, { jitter: 20 });
       const tx = st.worldW - 70;
       st.scene.add.image(tx, st.groundTop + 4, 'tomb').setOrigin(0.5, 1).setDepth(st.groundTop);

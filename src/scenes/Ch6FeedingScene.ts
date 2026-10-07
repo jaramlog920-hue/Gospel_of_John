@@ -2,7 +2,7 @@
 // 예수님과 성경 인물은 말하지 않는다. 사건은 두루마리 본문으로 보여주고, 대화는 가상 인물만 한다(설계 원칙 3·5).
 // 본문은 6:1–15를 끊지 않고 장면 흐름에 맞춰 이어서 보여준다.
 import Phaser from 'phaser';
-import { PAL, rgb } from '../art/palette.ts';
+import { PAL, rgb, WORLD as WC } from '../art/palette.ts';
 import { faceAndWalk, faceTo, grassTile } from '../art/textures.ts';
 import { Save } from '../state/save.ts';
 import { CH6_REFS } from '../story/flow.ts';
@@ -125,7 +125,7 @@ export class Ch6FeedingScene extends Phaser.Scene {
     this.yMax = this.H - 10;
 
     this.controls = new Controls(this);
-    this.cameras.main.setBackgroundColor(PAL.sky);
+    this.cameras.main.setBackgroundColor(WC.skyDay[0]);
     this.buildWorld();
 
     this.player = this.add.sprite(40, this.yAt(0.55), 'player', 0);
@@ -171,9 +171,9 @@ export class Ch6FeedingScene extends Phaser.Scene {
     const seaY = groundTop - 34;
     // 하늘(위는 진하게, 수평선 쪽은 밝게)과 구름, 먼 바다, 언덕
     const sky = this.add.graphics().setScrollFactor(0);
-    sky.fillStyle(PAL.sky).fillRect(0, 0, this.W, seaY);
-    sky.fillStyle(PAL.skyLight).fillRect(0, Math.floor(seaY * 0.55), this.W, seaY);
-    sky.fillStyle(PAL.skyLight);
+    sky.fillStyle(WC.skyDay[0]).fillRect(0, 0, this.W, seaY);
+    sky.fillStyle(WC.skyDay[2]).fillRect(0, Math.floor(seaY * 0.55), this.W, seaY);
+    sky.fillStyle(WC.skyDay[2]);
     for (let x = 0; x < this.W; x += 4) sky.fillRect(x, Math.floor(seaY * 0.55) - 1, 2, 1);
     for (let i = 0; i < 12; i++) {
       const cx = i * 130 + ((i * 53) % 60);

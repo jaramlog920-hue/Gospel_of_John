@@ -3,7 +3,7 @@
 // 화면 가장자리에 물결 표시를 띄우고, 위쪽에 거리(멀다·가깝다)를 글로 알려 준다.
 // 2026-10-04: 어떻게 하는지 알기 어렵다는 말에 내 모습을 희미하게 보이고, 물결을 크게, 방향을 주인공 기준으로 고쳤다.
 import Phaser from 'phaser';
-import { PAL } from '../art/palette.ts';
+import { PAL, WORLD as WC } from '../art/palette.ts';
 import { faceAndWalk } from '../art/textures.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { say } from '../ui/Dialog.ts';
@@ -41,7 +41,7 @@ export class BlindGame extends MiniGame {
     rt.endDraw();
     this.goal = { x: this.worldW - 50, y: this.worldH - 50 };
     // 실로암 못과 내려가는 계단
-    this.add.rectangle(this.goal.x - 30, this.goal.y - 20, 70, 50, PAL.cream).setOrigin(0);
+    this.add.rectangle(this.goal.x - 30, this.goal.y - 20, 70, 50, WC.wallTop).setOrigin(0);
     this.add.tileSprite(this.goal.x - 24, this.goal.y - 12, 58, 36, 'water').setOrigin(0);
     this.player = this.add.sprite(40, 40, 'player', 0);
     this.cameras.main.setBounds(0, 0, this.worldW, this.worldH).startFollow(this.player, true, 1, 1);

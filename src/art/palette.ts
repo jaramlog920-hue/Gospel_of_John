@@ -63,3 +63,56 @@ export const css = (c: number) => '#' + c.toString(16).padStart(6, '0');
 
 /** 카메라 fadeOut 등 RGB 인자용 */
 export const rgb = (c: number): [number, number, number] => [(c >> 16) & 255, (c >> 8) & 255, c & 255];
+
+// 배경(하늘·땅·벽·언덕·지붕) 전용 색표 — "푸른 새벽(블루아워)" (사용자 요청 2026-10-08: 사도행전 게임과 겹치지 않게 색감부터 아예 다르게).
+// 따뜻한 모래·석회암 크림빛 대신 라벤더·푸른 회색 돌·세이지로 차갑게 두고, 등잔·숯불·새벽빛 같은 따뜻한 빛만 도드라지게 한다.
+// 사람 옷·살빛은 PAL 그대로.
+export const WORLD = {
+  // 하늘
+  skyDay: [0xb4c0e2, 0xc6d0ec, 0xdbe1f3],
+  skyNoon: [0xccd5ee, 0xdbe1f3, 0xeaeef8],
+  skyEvening: [0x8f86b8, 0xb59fca, 0xdcbccb],
+  skyNight: [0x343f63, 0x3d4970, 0x4b587f],
+  skyDawn: [0x4e5c88, 0xa391c0, 0xeec9b6],
+  skyOvercast: [0x868ba1, 0x989db2, 0xadb1c3],
+  // 땅
+  dust: 0xc9c5d6, // 다진 흙길: 라벤더빛 회색 먼지
+  dustSpeck: 0xaca7c0,
+  dustHi: 0xdad7e5,
+  wild: 0xbcc8c0, // 광야: 세이지빛 마른 땅
+  wildSpeck: 0x9fae9f,
+  wildGrass: 0x8fa596,
+  paving: 0xe2e7f1, // 석회암 포석: 푸른 흰빛
+  pavingLine: 0xc2cadb,
+  pavingHi: 0xf5f7fb,
+  basalt: 0x7a8098, // 현무암: 슬레이트
+  basaltLine: 0x636982,
+  basaltHi: 0x959bb0,
+  floor: 0xb2aec4, // 실내 바닥: 라벤더 회벽 흙
+  floorSpeck: 0xc4c0d4,
+  floorSpeck2: 0x9a95ad,
+  deck: 0x9d93a8, // 배 갑판: 차가운 나무
+  deckLine: 0x7f768d,
+  sand: 0xdedcd6, // 새벽 바닷가: 은빛 모래
+  sandSpeck: 0xc3c0b9,
+  // 벽·언덕·지붕
+  wall: 0xc0c7da,
+  wallTop: 0xdfe4ef,
+  wallLine: 0xa3abc2,
+  plaster: 0xc6c1d5, // 실내 회벽
+  plasterLine: 0xa9a3bd,
+  roof: 0xa7a1b8,
+  roofLine: 0x8a849d,
+  hillSlate: 0x9aa2c2,
+  hillSlateRim: 0xc0c7e0,
+  hillSage: 0x8aaea6,
+  hillSageRim: 0xb1cec6,
+  hillDusk: 0x6f7c9e,
+  hillDuskRim: 0x8f9cbd,
+  pillar: 0xedf0f6,
+  pillarShade: 0xc6cbdd,
+  reed: 0xa6b8a8,
+  water: 0xa9c3e0,
+  waterHi: 0xcfdcee,
+  waterFoam: 0xe4ecf6,
+} as const;
